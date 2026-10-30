@@ -1,9 +1,11 @@
 package postgres
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/url"
 	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -99,4 +101,75 @@ func TestNewMigratesAllRegisteredModelsInIsolatedPostgresSchema(t *testing.T) {
 		indexCount,
 		constraintCount,
 	)
+	if err = writePostgresCatalogSnapshot(db, schemaName); err != nil {
+		t.Fatalf("export PostgreSQL migration catalog: %v", err)
+	}
+}
+
+type postgresCatalogSnapshot struct {
+	Schema      string                      `json:"schema"`
+	Tables      []string                    `json:"tables"`
+	Columns     []postgresCatalogColumn     `json:"columns"`
+	Indexes     []postgresCatalogIndex      `json:"indexes"`
+	Constraints []postgresCatalogConstraint `json:"constraints"`
+}
+
+type postgresCatalogColumn struct {
+	TableName       string `json:"table_name" gorm:"column:table_name"`
+	ColumnName      string `json:"column_name" gorm:"column:column_name"`
+	DataType        string `json:"data_type" gorm:"column:data_type"`
+	UDTName         string `json:"udt_name" gorm:"column:udt_name"`
+	IsNullable      string `json:"is_nullable" gorm:"column:is_nullable"`
+	ColumnDefault   string `json:"column_default" gorm:"column:column_default"`
+	OrdinalPosition int    `json:"ordinal_position" gorm:"column:ordinal_position"`
+}
+
+type postgresCatalogIndex struct {
+	TableName string `json:"table_name" gorm:"column:table_name"`
+	IndexName string `json:"index_name" gorm:"column:index_name"`
+	IndexDef  string `json:"index_def" gorm:"column:index_def"`
+}
+
+type postgresCatalogConstraint struct {
+	TableName      string `json:"table_name" gorm:"column:table_name"`
+	ConstraintName string `json:"constraint_name" gorm:"column:constraint_name"`
+	ConstraintType string `json:"constraint_type" gorm:"column:constraint_type"`
+	Definition     string `json:"definition" gorm:"column:definition"`
+}
+
+func writePostgresCatalogSnapshot(db *gorm.DB, schemaName string) error {
+	outputDir := strings.TrimSpace(os.Getenv("DEEIX_TEST_CATALOG_DIR"))
+	if outputDir == "" {
+		return nil
+	}
+	snapshot := postgresCatalogSnapshot{Schema: schemaName}
+	var tableRows []struct {
+		TableName string `gorm:"column:table_name"`
+	}
+	if err := db.Raw(`SELECT table_name FROM information_schema.tables WHERE table_schema = current_schema() AND table_type = 'BASE TABLE' ORDER BY table_name`).Scan(&tableRows).Error; err != nil {
+		return fmt.Errorf("query tables: %w", err)
+	}
+	for _, row := range tableRows {
+		snapshot.Tables = append(snapshot.Tables, row.TableName)
+	}
+	if err := db.Raw(`SELECT table_name, column_name, data_type, udt_name, is_nullable, COALESCE(column_default, '') AS column_default, ordinal_position FROM information_schema.columns WHERE table_schema = current_schema() ORDER BY table_name, ordinal_position`).Scan(&snapshot.Columns).Error; err != nil {
+		return fmt.Errorf("query columns: %w", err)
+	}
+	if err := db.Raw(`SELECT tablename AS table_name, indexname AS index_name, indexdef AS index_def FROM pg_indexes WHERE schemaname = current_schema() ORDER BY tablename, indexname`).Scan(&snapshot.Indexes).Error; err != nil {
+		return fmt.Errorf("query indexes: %w", err)
+	}
+	if err := db.Raw(`SELECT c.conrelid::regclass::text AS table_name, c.conname AS constraint_name, c.contype::text AS constraint_type, pg_get_constraintdef(c.oid) AS definition FROM pg_constraint c JOIN pg_namespace n ON n.oid = c.connamespace WHERE n.nspname = current_schema() ORDER BY c.conrelid::regclass::text, c.conname`).Scan(&snapshot.Constraints).Error; err != nil {
+		return fmt.Errorf("query constraints: %w", err)
+	}
+	payload, err := json.MarshalIndent(snapshot, "", "  ")
+	if err != nil {
+		return fmt.Errorf("encode catalog: %w", err)
+	}
+	if err = os.MkdirAll(outputDir, 0o755); err != nil {
+		return fmt.Errorf("create catalog output directory: %w", err)
+	}
+	if err = os.WriteFile(filepath.Join(outputDir, "postgres-catalog.json"), payload, 0o644); err != nil {
+		return fmt.Errorf("write catalog snapshot: %w", err)
+	}
+	return nil
 }
