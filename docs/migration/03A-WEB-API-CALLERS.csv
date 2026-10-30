@@ -326,3 +326,5 @@
 "apps/web/shared/api/conversation.ts","1515","/api/v1/conversations/{param}/media/images/edits/stream","SEE_ROUTER_OR_CALLSITE"
 "apps/web/shared/api/conversation.ts","1530","/api/v1/conversations/{param}/media/videos/generations/stream","SEE_ROUTER_OR_CALLSITE"
 "apps/web/shared/api/conversation.ts","1545","/api/v1/conversations/{param}/media/videos/extensions/stream","SEE_ROUTER_OR_CALLSITE"
+"apps/web/shared/lib/avatar.ts","185","/api/v1/users/{param}/avatar","BROWSER_IMAGE_GET"
+"apps/web/entities/model/components/model-icon.tsx","10","/api/v1/llm/icon-assets/{param}","BROWSER_IMAGE_GET"
