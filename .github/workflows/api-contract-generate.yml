@@ -40,6 +40,8 @@ jobs:
         with:
           go-version-file: backend/go.mod
           cache-dependency-path: backend/go.sum
+      - name: Validate migration workflow with actionlint
+        run: go run github.com/rhysd/actionlint/cmd/actionlint@v1.7.7 .github/workflows/dotnet-web-migration.yml
       - name: Install workspace dependencies
         run: pnpm install --frozen-lockfile
       - name: Format touched Go source files
