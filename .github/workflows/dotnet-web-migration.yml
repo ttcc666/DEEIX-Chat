@@ -90,6 +90,23 @@ jobs:
               raise SystemExit("Expected 321 Web path matches; review API caller inventory")
           if sum(row["web_caller_mapping"] == "NO_LITERAL_MATCH_REVIEW" for row in api_rows) != 18:
               raise SystemExit("Expected 18 no-literal caller routes; review coverage report")
+          if sum(row["has_body_parameter"] == "true" for row in api_rows) != 145:
+              raise SystemExit("Expected 145 Swagger request bodies")
+          if sum(bool(row["request_body_schema"]) for row in api_rows) != 145:
+              raise SystemExit("Request body schema extraction is incomplete")
+          if sum(bool(row["response_schemas"]) for row in api_rows) != 339:
+              raise SystemExit("Response schema extraction is incomplete")
+          auth_counts = {}
+          for row in api_rows:
+              auth_counts[row["go_auth_context"]] = auth_counts.get(row["go_auth_context"], 0) + 1
+          expected_auth = {
+              "AUTHENTICATED+ADMIN_ONLY": 168,
+              "AUTHENTICATED": 148,
+              "PUBLIC_RATE_LIMITED": 22,
+              "LOCAL_MODE_ONLY": 1,
+          }
+          if auth_counts != expected_auth:
+              raise SystemExit(f"Go auth context counts differ: {auth_counts}")
           if any(row["migration_status"] != "EXPLICIT_TABLE_NAME_VERIFIED" for row in table_rows):
               raise SystemExit("Every GORM table name must be explicitly source-verified")
           if any(row["compatibility_status"] != "NOT_MAPPED" for row in api_rows):
@@ -97,7 +114,7 @@ jobs:
           if any(row["dotnet_implementation"] != "NOT_STARTED" for row in api_rows):
               raise SystemExit("Do not mark .NET implementation started from an inventory-only commit")
 
-          print("Validated source inventory: 339 API operations, 344 Go routes, 321 Web path matches, 65 tables, 886 fields, 430 index members, 87 PostgreSQL DDL statements and 3 vector tables.")
+          print("Validated source inventory: 339 API operations, 145 request schemas, 339 response schemas, 344 Go routes, 321 Web path matches, 65 tables, 886 fields, 430 index members, 87 PostgreSQL DDL statements and 3 vector tables.")
           PY
 
   go-baseline:

@@ -10,18 +10,18 @@
 
 `.github/workflows/dotnet-web-migration.yml` runs:
 
-1. Inventory validation: 339 Swagger operations, 344 Go route registrations, 327 Web caller rows, 65 explicit GORM table mappings, 886 flattened model fields, 430 GORM index members, 87 PostgreSQL custom DDL statements and 3 SQLite vector tables.
+1. Inventory validation: 339 Swagger operations, 344 Go route registrations, 327 Web caller rows, 65 explicit GORM table mappings, 886 flattened model fields, 430 GORM index members, 87 PostgreSQL custom DDL statements and 3 SQLite vector tables. It also validates 145 request-body schema references, 339 response-schema maps and the four Go base-auth context buckets.
 2. Go lint, default build/test and Desktop-sidecar-tag build/test.
 3. Web dependency install, lint/type/architecture/API-contract checks, package tests and static build.
 4. PostgreSQL persistence integration tests against an ephemeral pgvector service with `DEEIX_TEST_DATABASE_DSN`.
 5. Conditional .NET 10 restore/build/test when a solution exists under `backend-dotnet/`.
 
-The previous baseline Run `41006537076` passed audit, Go and Web checks. The PostgreSQL integration job is newly added and must complete on the next run.
+The earlier baseline Run `41006537076` passed the original audit, Go and Web checks. The ephemeral PostgreSQL job is newly added; its first non-cancelled run is required before closing the database portion of G0.
 
 ## Remaining test work
 
 - Export and compare physical PostgreSQL and SQLite catalogs after migration; no production DSN.
-- Add explicit API contract tests for body/response schemas, permissions, cookies, streaming and error envelopes.
+- Add explicit API contract tests for body/response schemas, fine-grained permissions, cookies, streaming and error envelopes.
 - Add cross-language bcrypt/AES/JWT golden vectors in Phase 2.
 - Add Provider protocol/streaming fixtures in Phase 3.
 - Add MCP signed-context/SSRF/replay tests in Phase 5.

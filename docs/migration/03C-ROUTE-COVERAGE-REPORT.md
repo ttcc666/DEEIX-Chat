@@ -8,12 +8,20 @@
 | Swagger operations | 339 |
 | Go route registrations | 344 |
 | Swagger operations with exact Go method/path/handler mapping | 339 |
+| Request-body schema references | 145 |
+| Response-schema maps | 339 |
+| Go authenticated + admin-only base contexts | 168 |
+| Go authenticated base contexts | 148 |
+| Go public/rate-limited base contexts | 22 |
+| Go local-mode-only contexts | 1 |
 | Web API caller source rows | 327 |
 | Operations with direct Web path-literal match | 321 |
 | Operations without direct Web path-literal match | 18 |
 | Go route registrations not represented in Swagger | 5 |
 
 The detailed join is in [03-API-INVENTORY.csv](03-API-INVENTORY.csv). The source call sites are in [03A-WEB-API-CALLERS.csv](03A-WEB-API-CALLERS.csv); Go registrations are in [03B-GO-ROUTE-HANDLERS.csv](03B-GO-ROUTE-HANDLERS.csv).
+
+The Go auth context is the base middleware inherited from the server router: public routes use the public auth/rate-limit group, authenticated routes use JWT authentication and rate limiting, and admin routes additionally use `AdminOnly`. This does not replace handler-level ownership or permission-group checks.
 
 ## Five Go registrations not represented in Swagger
 
@@ -43,7 +51,8 @@ The detailed join is in [03-API-INVENTORY.csv](03-API-INVENTORY.csv). The source
 
 ## Mapping limitations
 
-- All Swagger operations now include their Go handler and router source file.
+- All Swagger operations include their Go handler and router source file.
+- The operation matrix now records request parameters, body schema references, response schema references and base auth context.
 - Web matching is path-only: the caller inventory records file/line, but this pass does not claim AST-verified HTTP-method equivalence.
-- Request/response DTO, permission middleware and error/streaming contract mapping remain G0 work.
+- Handler-level DTO equivalence, fine-grained permissions, error/streaming contract verification and .NET implementation remain open.
 - The API CSV intentionally keeps .NET implementation and compatibility status as `NOT_STARTED` / `NOT_MAPPED`.

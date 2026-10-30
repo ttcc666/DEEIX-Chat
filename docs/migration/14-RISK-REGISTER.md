@@ -2,7 +2,7 @@
 
 | Risk | Severity | Control | State |
 |---|---|---|---|
-| API/DTO/permission omissions | Critical | 339 Swagger operations now map to Go handlers; request/response/auth policy review remains | Partially mapped |
+| API/DTO/permission omissions | Critical | 339 operations map to Go handlers; 145 body schemas, 339 response schemas and base auth context mapped; handler DTO/fine-grained permissions remain | Partially mapped |
 | Web endpoint caller omissions | High | 321 direct path matches; 18 no-literal routes classified for manual review | Open |
 | Undocumented Go routes | Medium | Five route registrations absent from Swagger require include/exclude decisions | Open |
 | DB schema mismatch | Critical | 65 explicit tables, 886 fields, 430 index members and 87 custom DDL statements inventoried; physical catalog diff pending | Open |
@@ -16,5 +16,5 @@
 | Static routes/CORS/cookies regression | High | reverse-proxy and browser E2E | Open |
 | Worker duplicate/stale writes | Critical | durable lease, idempotency and fencing | Open |
 | Desktop sidecar regression | Critical | preserve Go/Cargo/Tauri and sidecar-tag CI | Guarded |
-| PostgreSQL integration regressions | High | ephemeral pgvector Actions job | Added; run pending |
+| PostgreSQL integration regressions | High | ephemeral pgvector Actions job | Added; first non-cancelled run pending |
 | CI absent on migration branches | Medium | branch-specific migration workflow | Added |

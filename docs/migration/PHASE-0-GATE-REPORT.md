@@ -4,12 +4,14 @@ Repository: `ttcc666/DEEIX-Chat` · base `dev@cd58a60eeff1334015ec11ae06315a9ef9
 
 ## Decision: G0 BLOCKED — continue Phase 0
 
-The first migration baseline run passed, and the route/schema source inventories are now substantially mapped. This is not yet sufficient to start Phase 1 because physical database catalog verification and the remaining API DTO/auth-policy review are still open.
+The route and source-schema inventories are now substantially mapped. This is not yet sufficient to start Phase 1 because physical database catalog verification, fine-grained authorization review and the remaining Web caller decisions are still open.
 
 ## Verified source baseline
 
 - Swagger: 275 paths / 339 operations.
 - Go routing: 344 registrations; all 339 Swagger operations map to an exact Go HTTP method/path and handler.
+- API contracts: 145 request-body schema references and 339 response-schema maps extracted from Swagger.
+- Go base auth context: 168 authenticated + admin-only, 148 authenticated, 22 public/rate-limited, 1 local-mode-only.
 - Five Go route registrations are not represented in Swagger; see [03C-ROUTE-COVERAGE-REPORT.md](03C-ROUTE-COVERAGE-REPORT.md).
 - Web callers: 327 call-site rows; 321 operations have a direct path-literal match and 18 require manual classification/review.
 - GORM: 65 registered models; all 65 explicit `TableName()` values verified against source.
@@ -19,9 +21,9 @@ The first migration baseline run passed, and the route/schema source inventories
 
 ## Remaining G0 blockers
 
-1. Run the new ephemeral PostgreSQL/pgvector Actions integration job and retain its result; SQLite migration tests remain in the Go baseline.
+1. Complete one non-cancelled run of the new ephemeral PostgreSQL/pgvector Actions integration job; SQLite migration tests remain in the Go baseline.
 2. Export actual isolated PostgreSQL and SQLite table/column/index catalogs after migrations, then compare types, nullability, defaults, PK/FK, unique/partial/composite indexes, vector extension/operator classes and soft-delete semantics against the source inventory.
-3. Map Swagger request/response schema references, handler DTOs, authentication middleware, per-route permissions, Cookie/Header behavior, status/error envelopes and streaming/file semantics for all 339 operations.
+3. Compare Swagger schema references with actual Go handler DTOs and generated TypeScript contracts; map fine-grained permission checks, ownership rules, Cookie/Header behavior, status/error envelopes and streaming/file semantics for all 339 operations. Base router middleware is mapped, but not every handler authorization branch.
 4. Review the 18 operations without direct Web path-literal matches and decide whether each is callback/static/indirect/Desktop-only/unused or needs an additional Web caller mapping.
 5. Resolve the five Go routes not represented in Swagger: EPay GET notification, billing config, admin billing plans, version and the root Web manifest route.
 6. Preserve the Go/.NET cross-language auth/crypto compatibility tests for Phase 2; no .NET implementation exists yet.
@@ -34,4 +36,4 @@ No production DSN, production payment endpoint or production deployment was used
 
 ## Next steps
 
-Complete the ephemeral database integration and catalog export/diff, finish API DTO/auth mapping and resolve route discrepancies. Re-evaluate G0 only when those checks have evidence. Then start Phase 1 in a separate commit.
+Complete the ephemeral database integration and catalog export/diff, finish handler DTO/permission mapping and resolve route discrepancies. Re-evaluate G0 only when those checks have evidence. Then start Phase 1 in a separate commit.
