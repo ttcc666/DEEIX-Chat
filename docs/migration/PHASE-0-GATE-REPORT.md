@@ -13,7 +13,7 @@ The route and source-schema inventories are now substantially mapped. This is no
 - API contracts: 145 request-body schema references and 339 response-schema maps extracted from Swagger.
 - Go base auth context: 168 authenticated + admin-only, 148 authenticated, 22 public/rate-limited, 1 local-mode-only.
 - Five Go route registrations are not represented in Swagger; three are directly used by Web and are listed in [03D-WEB-ONLY-UNSWAGGERED-ROUTES.csv](03D-WEB-ONLY-UNSWAGGERED-ROUTES.csv).
-- Web callers: 327 call-site rows; 321 Swagger operations have a direct path-literal match and 18 require manual classification/review.
+- Web callers: 329 source rows; 321 direct path-literal matches, 2 indirect browser-image callers and 16 operations still requiring manual classification.
 - GORM: 65 registered models; all 65 explicit `TableName()` values verified against source.
 - Database source inventory: 886 flattened field rows, 430 GORM index members, 87 PostgreSQL custom DDL statements and 3 SQLite sqlite-vec tables.
 - Go: 939 source files / 323 test files.
@@ -24,7 +24,7 @@ The route and source-schema inventories are now substantially mapped. This is no
 1. Complete one non-cancelled run of the full ephemeral PostgreSQL and SQLite migration catalog tests. PostgreSQL uses pgvector and a unique schema; SQLite uses a temporary file. Both are isolated from production.
 2. Export actual isolated PostgreSQL and SQLite table/column/index catalogs after migrations, then compare types, nullability, defaults, PK/FK, unique/partial/composite indexes, vector extension/operator classes and soft-delete semantics against the source inventory.
 3. Compare Swagger schema references with actual Go handler DTOs and generated TypeScript contracts; map fine-grained permission checks, ownership rules, Cookie/Header behavior, status/error envelopes and streaming/file semantics for all 339 operations. Base router middleware is mapped, but not every handler authorization branch.
-4. Review the 18 operations without direct Web path-literal matches and decide whether each is callback/static/indirect/Desktop-only/unused or needs an additional Web caller mapping.
+4. Review the 16 operations without a direct or indirect Web caller match and decide whether each is callback/static/Desktop-only/unused or needs an additional Web caller mapping. The model-icon and user-avatar routes have confirmed indirect image callers.
 5. Add the three Web-used but undocumented GET routes to the canonical OpenAPI contract: `/billing/config`, `/admin/billing/plans` and `/version`. Confirm the remaining EPay GET callback and root manifest are correctly documented as provider/static routes.
 6. Preserve the Go/.NET cross-language auth/crypto compatibility tests for Phase 2; no .NET implementation exists yet.
 

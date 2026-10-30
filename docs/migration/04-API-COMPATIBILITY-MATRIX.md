@@ -9,8 +9,8 @@ Source: `backend/docs/swagger.yaml` (Swagger 2.0, base path `/api/v1`). Detailed
 - Five Go route registrations are not represented as Swagger operations. Three of these are called by Web and must be included in the canonical contract; two are provider/static routes.
 - The operation matrix includes request parameter summaries, **145 request-body schema references**, and **339 response-schema maps**.
 - Go base authentication contexts are mapped from the actual router registration chain: 168 authenticated + admin-only, 148 authenticated, 22 public/rate-limited and 1 local-mode-only.
-- 327 Web API call-site rows were inventoried. 321 Swagger operations have a direct Web path-literal match; 18 remain in a manual review bucket.
-- Web matching is deliberately marked `PATH_MATCH_ONLY`; the caller CSV records source file and line, but method-level AST verification remains a follow-up.
+- 329 Web caller source rows were inventoried. 321 Swagger operations have a direct Web path-literal match; 2 additional routes have indirect browser-image callers; 16 still require manual review.
+- Web matching is deliberately marked `PATH_MATCH_ONLY`, `INDIRECT_IMAGE_MATCH` or `NO_LITERAL_MATCH_REVIEW`; caller rows record source file and line, but method-level AST verification remains a follow-up.
 
 ## Operation-level completion requirements
 

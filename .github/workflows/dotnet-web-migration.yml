@@ -73,7 +73,7 @@ jobs:
 
           expected = {
               "Swagger operations": (len(api_rows), 339),
-              "Web caller rows": (len(web_rows), 327),
+              "Web caller rows": (len(web_rows), 329),
               "Go route registrations": (len(go_rows), 344),
               "Web-used undocumented routes": (len(extra_web_rows), 3),
               "GORM table mappings": (len(table_rows), 65),
@@ -89,9 +89,11 @@ jobs:
           if any(not row["go_handler"] for row in api_rows):
               raise SystemExit("Every Swagger operation must map to a Go handler")
           if sum(row["web_caller_mapping"] == "PATH_MATCH_ONLY" for row in api_rows) != 321:
-              raise SystemExit("Expected 321 Web path matches; review API caller inventory")
-          if sum(row["web_caller_mapping"] == "NO_LITERAL_MATCH_REVIEW" for row in api_rows) != 18:
-              raise SystemExit("Expected 18 no-literal caller routes; review coverage report")
+              raise SystemExit("Expected 321 direct Web path matches; review API caller inventory")
+          if sum(row["web_caller_mapping"] == "INDIRECT_IMAGE_MATCH" for row in api_rows) != 2:
+              raise SystemExit("Expected 2 indirect browser-image callers; review caller inventory")
+          if sum(row["web_caller_mapping"] == "NO_LITERAL_MATCH_REVIEW" for row in api_rows) != 16:
+              raise SystemExit("Expected 16 unresolved Web caller routes; review coverage report")
           if sum(row["has_body_parameter"] == "true" for row in api_rows) != 145:
               raise SystemExit("Expected 145 Swagger request bodies")
           if sum(bool(row["request_body_schema"]) for row in api_rows) != 145:
@@ -118,7 +120,7 @@ jobs:
           if any(row["dotnet_implementation"] != "NOT_STARTED" for row in api_rows):
               raise SystemExit("Do not mark .NET implementation started from an inventory-only commit")
 
-          print("Validated source inventory: 339 Swagger operations, 3 Web-used undocumented routes, 145 request schemas, 339 response schemas, 344 Go routes, 321 Web path matches, 65 tables, 886 fields, 430 index members, 87 PostgreSQL DDL statements and 3 vector tables.")
+          print("Validated source inventory: 339 Swagger operations, 3 Web-used undocumented routes, 145 request schemas, 339 response schemas, 344 Go routes, 321 direct + 2 indirect Web callers, 65 tables, 886 fields, 430 index members, 87 PostgreSQL DDL statements and 3 vector tables.")
           PY
 
   go-baseline:

@@ -14,9 +14,10 @@
 | Go authenticated base contexts | 148 |
 | Go public/rate-limited base contexts | 22 |
 | Go local-mode-only contexts | 1 |
-| Web API caller source rows | 327 |
+| Web API caller source rows | 329 |
 | Operations with direct Web path-literal match | 321 |
-| Operations without direct Web path-literal match | 18 |
+| Operations with indirect browser-image caller | 2 |
+| Operations without direct or indirect Web caller evidence | 16 |
 | Go route registrations not represented in Swagger | 5 |
 | Web-used Go routes missing from Swagger | 3 |
 
@@ -36,19 +37,19 @@ The Go auth context is the base middleware inherited from the server router: pub
 
 ## Eighteen Swagger operations without a direct path-literal match in the inventoried Web API modules
 
-| Group | Routes | Initial interpretation; confirm before excluding |
+| Group | Routes | Caller evidence / initial interpretation |
 |---|---|---|
 | Admin runtime controls (6) | RapidOCR and Tika start/stop/restart | No direct caller found in current Admin API modules |
 | Desktop/local auth (1) | `POST /auth/local/exchange` | Likely Desktop-only; explicitly excluded from Web migration unless evidence says otherwise |
 | OIDC callback (1) | `GET /auth/providers/{slug}/callback` | Browser/provider redirect callback, not an ordinary API client call |
 | Payment callbacks (2) | EPay notify and Stripe webhook | Provider-to-server callbacks, not browser callers |
 | Branding manifest (1) | `GET /branding/manifest.webmanifest` | Browser/static resource path |
-| File processing (1) | `GET /files/{file_id}/processing` | Check whether replaced by batch processing-status APIs |
-| Model icon asset (1) | `GET /llm/icon-assets/{public_id}` | May be loaded as an image URL rather than through an API module |
+| File processing (1) | `GET /files/{file_id}/processing` | No direct Web caller; check whether replaced by batch processing-status APIs |
+| Model icon asset (1) | `GET /llm/icon-assets/{public_id}` | Indirect browser image caller confirmed: `apps/web/entities/model/components/model-icon.tsx:10` |
 | User UI components (4) | `/ui-components/mine` GET/POST/PATCH/DELETE | No direct caller found in current Web API module; confirm whether feature is unused |
-| User avatar (1) | `GET /users/{public_id}/avatar` | May be loaded as an image URL; search Web image/avatar components |
+| User avatar (1) | `GET /users/{public_id}/avatar` | Indirect browser image caller confirmed: `apps/web/shared/lib/avatar.ts:185` |
 
-“Without a direct path-literal match” is not equivalent to “unused”. Browser resources, dynamically assembled URLs, redirects and Desktop-only flows need an explicit decision.
+“Without a direct path-literal match” is not equivalent to “unused”. Two of the 18 have confirmed indirect browser-image callers; the remaining 16 still need an explicit decision.
 
 ## Mapping limitations
 
