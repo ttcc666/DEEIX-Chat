@@ -17,7 +17,7 @@
 4. PostgreSQL persistence integration tests against an ephemeral pgvector service with `DEEIX_TEST_DATABASE_DSN`. The suite includes a full `postgres.New` migration test in a unique isolated schema and verifies all 65 registered model tables.
 5. Conditional .NET 10 restore/build/test when a solution exists under `backend-dotnet/`.
 
-The PostgreSQL and SQLite migration catalog tests run only against ephemeral/temporary databases. Their current assertions verify all registered model tables and the SQLite vector virtual tables; a complete physical column/type/nullability/default/PK/FK/index catalog export and diff is still required before closing the database portion of G0.
+The PostgreSQL and SQLite migration catalog tests run only against ephemeral/temporary databases. The integration job now exports information_schema/pg_indexes/pg_constraint and sqlite_master/PRAGMA snapshots, then runs `docs/migration/scripts/compare-db-catalogs.py` against the checked-in table, field, GORM-index, PostgreSQL-DDL and sqlite-vec inventories. The comparison checks table/column presence, declared NOT NULL/default semantics, primary keys, named GORM indexes, composite index order, partial-index predicates, custom PostgreSQL indexes and sqlite-vec DDL. The first successful comparison with zero mismatches is required before closing the database portion of G0.
 
 ## Remaining test work
 

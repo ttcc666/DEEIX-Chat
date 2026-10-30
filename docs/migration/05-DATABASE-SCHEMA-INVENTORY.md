@@ -26,3 +26,16 @@
 ## G0 database work still required
 
 The inventories above are source-derived, not a live database catalog comparison. Run migrations against isolated PostgreSQL (with pgvector) and SQLite databases, export actual columns/types/nullability/defaults/PK/FK/indexes, and compare the resulting catalogs with these source inventories. Do not use a production DSN. The migration branch CI now has a PostgreSQL integration job; its result is required before closing the database portion of G0.
+
+
+## Physical migration catalog verification
+
+The migration branch's isolated CI job exports the post-migration physical catalog from a unique PostgreSQL schema and a temporary SQLite file. It compares these snapshots with the source inventories in:
+
+- `06-DATABASE-TABLE-MAPPING.csv` — expected model tables.
+- `06B-DATABASE-FIELD-INVENTORY.csv` — flattened fields and GORM column/nullability/default tags.
+- `06C-DATABASE-GORM-INDEX-MEMBERS.csv` — named and composite GORM index members.
+- `06D-POSTGRES-CUSTOM-DDL.csv` — PostgreSQL custom columns and indexes.
+- `06E-VECTOR-STORAGE-INVENTORY.csv` — sqlite-vec virtual tables and embedding dimensions.
+
+The comparison script is `scripts/compare-db-catalogs.py`. It currently verifies table/column presence, declared NOT NULL/default semantics, primary keys, named GORM indexes, composite index order, partial-index predicates, custom PostgreSQL indexes and sqlite-vec DDL. PostgreSQL type families, foreign-key semantics, vector operator classes and soft-delete query behavior remain separate review items; a passing name/index comparison alone does not close those risks.
