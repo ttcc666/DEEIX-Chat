@@ -42,16 +42,16 @@ jobs:
               "00-SOURCE-BASELINE.md", "01-WEB-SCOPE-AND-EXCLUSIONS.md",
               "02-WEB-DEPENDENCY-MAP.md", "03-API-INVENTORY.csv",
               "03A-WEB-API-CALLERS.csv", "03B-GO-ROUTE-HANDLERS.csv",
-              "03C-ROUTE-COVERAGE-REPORT.md", "04-API-COMPATIBILITY-MATRIX.md",
-              "05-DATABASE-SCHEMA-INVENTORY.md", "05B-DATABASE-INDEX-INVENTORY.md",
-              "06-DATABASE-TABLE-MAPPING.csv", "06B-DATABASE-FIELD-INVENTORY.csv",
-              "06C-DATABASE-GORM-INDEX-MEMBERS.csv", "06D-POSTGRES-CUSTOM-DDL.csv",
-              "06E-VECTOR-STORAGE-INVENTORY.csv", "07-AUTH-CRYPTO-COMPATIBILITY.md",
-              "08-PROVIDER-COMPATIBILITY-MATRIX.md", "09-MCP-COMPATIBILITY.md",
-              "10-FILES-RAG-MEMORY-MAPPING.md", "11-BILLING-PAYMENT-COMPATIBILITY.md",
-              "12-WEB-DEPLOYMENT-ANALYSIS.md", "13-TEST-INVENTORY.md",
-              "14-RISK-REGISTER.md", "15-FEATURE-MIGRATION-MATRIX.md",
-              "PHASE-0-GATE-REPORT.md"
+              "03C-ROUTE-COVERAGE-REPORT.md", "03D-WEB-ONLY-UNSWAGGERED-ROUTES.csv",
+              "04-API-COMPATIBILITY-MATRIX.md", "05-DATABASE-SCHEMA-INVENTORY.md",
+              "05B-DATABASE-INDEX-INVENTORY.md", "06-DATABASE-TABLE-MAPPING.csv",
+              "06B-DATABASE-FIELD-INVENTORY.csv", "06C-DATABASE-GORM-INDEX-MEMBERS.csv",
+              "06D-POSTGRES-CUSTOM-DDL.csv", "06E-VECTOR-STORAGE-INVENTORY.csv",
+              "07-AUTH-CRYPTO-COMPATIBILITY.md", "08-PROVIDER-COMPATIBILITY-MATRIX.md",
+              "09-MCP-COMPATIBILITY.md", "10-FILES-RAG-MEMORY-MAPPING.md",
+              "11-BILLING-PAYMENT-COMPATIBILITY.md", "12-WEB-DEPLOYMENT-ANALYSIS.md",
+              "13-TEST-INVENTORY.md", "14-RISK-REGISTER.md",
+              "15-FEATURE-MIGRATION-MATRIX.md", "PHASE-0-GATE-REPORT.md"
           ]
           missing = [name for name in required if not (root / name).is_file()]
           if missing:
@@ -64,6 +64,7 @@ jobs:
           api_rows = load("03-API-INVENTORY.csv")
           web_rows = load("03A-WEB-API-CALLERS.csv")
           go_rows = load("03B-GO-ROUTE-HANDLERS.csv")
+          extra_web_rows = load("03D-WEB-ONLY-UNSWAGGERED-ROUTES.csv")
           table_rows = load("06-DATABASE-TABLE-MAPPING.csv")
           field_rows = load("06B-DATABASE-FIELD-INVENTORY.csv")
           index_rows = load("06C-DATABASE-GORM-INDEX-MEMBERS.csv")
@@ -74,6 +75,7 @@ jobs:
               "Swagger operations": (len(api_rows), 339),
               "Web caller rows": (len(web_rows), 327),
               "Go route registrations": (len(go_rows), 344),
+              "Web-used undocumented routes": (len(extra_web_rows), 3),
               "GORM table mappings": (len(table_rows), 65),
               "GORM field rows": (len(field_rows), 886),
               "GORM index members": (len(index_rows), 430),
@@ -109,12 +111,14 @@ jobs:
               raise SystemExit(f"Go auth context counts differ: {auth_counts}")
           if any(row["migration_status"] != "EXPLICIT_TABLE_NAME_VERIFIED" for row in table_rows):
               raise SystemExit("Every GORM table name must be explicitly source-verified")
+          if any(row["swagger_status"] != "MISSING_FROM_SWAGGER" for row in extra_web_rows):
+              raise SystemExit("Unexpected status in Web-only undocumented routes")
           if any(row["compatibility_status"] != "NOT_MAPPED" for row in api_rows):
               raise SystemExit("Do not mark compatibility complete before implementation")
           if any(row["dotnet_implementation"] != "NOT_STARTED" for row in api_rows):
               raise SystemExit("Do not mark .NET implementation started from an inventory-only commit")
 
-          print("Validated source inventory: 339 API operations, 145 request schemas, 339 response schemas, 344 Go routes, 321 Web path matches, 65 tables, 886 fields, 430 index members, 87 PostgreSQL DDL statements and 3 vector tables.")
+          print("Validated source inventory: 339 Swagger operations, 3 Web-used undocumented routes, 145 request schemas, 339 response schemas, 344 Go routes, 321 Web path matches, 65 tables, 886 fields, 430 index members, 87 PostgreSQL DDL statements and 3 vector tables.")
           PY
 
   go-baseline:

@@ -18,20 +18,21 @@
 | Operations with direct Web path-literal match | 321 |
 | Operations without direct Web path-literal match | 18 |
 | Go route registrations not represented in Swagger | 5 |
+| Web-used Go routes missing from Swagger | 3 |
 
-The detailed join is in [03-API-INVENTORY.csv](03-API-INVENTORY.csv). The source call sites are in [03A-WEB-API-CALLERS.csv](03A-WEB-API-CALLERS.csv); Go registrations are in [03B-GO-ROUTE-HANDLERS.csv](03B-GO-ROUTE-HANDLERS.csv).
+The detailed join is in [03-API-INVENTORY.csv](03-API-INVENTORY.csv). The source call sites are in [03A-WEB-API-CALLERS.csv](03A-WEB-API-CALLERS.csv); Go registrations are in [03B-GO-ROUTE-HANDLERS.csv](03B-GO-ROUTE-HANDLERS.csv). The three Web-used undocumented operations are listed in [03D-WEB-ONLY-UNSWAGGERED-ROUTES.csv](03D-WEB-ONLY-UNSWAGGERED-ROUTES.csv).
 
 The Go auth context is the base middleware inherited from the server router: public routes use the public auth/rate-limit group, authenticated routes use JWT authentication and rate limiting, and admin routes additionally use `AdminOnly`. This does not replace handler-level ownership or permission-group checks.
 
 ## Five Go registrations not represented in Swagger
 
-| Method | Route | Handler | Review |
-|---|---|---|---|
-| GET | `/api/v1/billing/payments/epay/notify` | `EPayNotify` | Determine whether this is a legacy/provider callback that should be documented or retired |
-| GET | `/api/v1/billing/config` | `GetBillingConfig` | Decide whether the Web-facing billing config contract is missing from Swagger |
-| GET | `/api/v1/admin/billing/plans` | `ListPlans` | Decide whether the Admin billing plans read contract is missing from Swagger |
-| GET | `/api/v1/version` | `buildinfo.Snapshot` | Web calls this endpoint; add to canonical OpenAPI contract |
-| GET | `/manifest.webmanifest` | `GetBrandingManifest` | Browser manifest route outside `/api/v1`; document as static Web behavior, not an API operation |
+| Method | Route | Handler | Web caller | Review |
+|---|---|---|---|---|
+| GET | `/api/v1/billing/payments/epay/notify` | `EPayNotify` | Provider callback; no Web API caller | Determine whether to document as provider callback or retire |
+| GET | `/api/v1/billing/config` | `GetBillingConfig` | `apps/web/shared/api/billing.ts:19` | Add to canonical OpenAPI contract |
+| GET | `/api/v1/admin/billing/plans` | `ListPlans` | `apps/web/features/admin/api/billing.ts:41` | Add to canonical OpenAPI contract |
+| GET | `/api/v1/version` | `buildinfo.Snapshot` | `apps/web/shared/api/app-version.ts:14` | Add to canonical OpenAPI contract |
+| GET | `/manifest.webmanifest` | `GetBrandingManifest` | Browser manifest route; no API module caller | Document as static Web behavior outside `/api/v1` |
 
 ## Eighteen Swagger operations without a direct path-literal match in the inventoried Web API modules
 

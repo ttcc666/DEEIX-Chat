@@ -12,8 +12,8 @@ The route and source-schema inventories are now substantially mapped. This is no
 - Go routing: 344 registrations; all 339 Swagger operations map to an exact Go HTTP method/path and handler.
 - API contracts: 145 request-body schema references and 339 response-schema maps extracted from Swagger.
 - Go base auth context: 168 authenticated + admin-only, 148 authenticated, 22 public/rate-limited, 1 local-mode-only.
-- Five Go route registrations are not represented in Swagger; see [03C-ROUTE-COVERAGE-REPORT.md](03C-ROUTE-COVERAGE-REPORT.md).
-- Web callers: 327 call-site rows; 321 operations have a direct path-literal match and 18 require manual classification/review.
+- Five Go route registrations are not represented in Swagger; three are directly used by Web and are listed in [03D-WEB-ONLY-UNSWAGGERED-ROUTES.csv](03D-WEB-ONLY-UNSWAGGERED-ROUTES.csv).
+- Web callers: 327 call-site rows; 321 Swagger operations have a direct path-literal match and 18 require manual classification/review.
 - GORM: 65 registered models; all 65 explicit `TableName()` values verified against source.
 - Database source inventory: 886 flattened field rows, 430 GORM index members, 87 PostgreSQL custom DDL statements and 3 SQLite sqlite-vec tables.
 - Go: 939 source files / 323 test files.
@@ -21,19 +21,19 @@ The route and source-schema inventories are now substantially mapped. This is no
 
 ## Remaining G0 blockers
 
-1. Complete one non-cancelled run of the new ephemeral PostgreSQL/pgvector Actions integration job; SQLite migration tests remain in the Go baseline.
+1. Complete one non-cancelled run of the full ephemeral PostgreSQL and SQLite migration catalog tests. PostgreSQL uses pgvector and a unique schema; SQLite uses a temporary file. Both are isolated from production.
 2. Export actual isolated PostgreSQL and SQLite table/column/index catalogs after migrations, then compare types, nullability, defaults, PK/FK, unique/partial/composite indexes, vector extension/operator classes and soft-delete semantics against the source inventory.
 3. Compare Swagger schema references with actual Go handler DTOs and generated TypeScript contracts; map fine-grained permission checks, ownership rules, Cookie/Header behavior, status/error envelopes and streaming/file semantics for all 339 operations. Base router middleware is mapped, but not every handler authorization branch.
 4. Review the 18 operations without direct Web path-literal matches and decide whether each is callback/static/indirect/Desktop-only/unused or needs an additional Web caller mapping.
-5. Resolve the five Go routes not represented in Swagger: EPay GET notification, billing config, admin billing plans, version and the root Web manifest route.
+5. Add the three Web-used but undocumented GET routes to the canonical OpenAPI contract: `/billing/config`, `/admin/billing/plans` and `/version`. Confirm the remaining EPay GET callback and root manifest are correctly documented as provider/static routes.
 6. Preserve the Go/.NET cross-language auth/crypto compatibility tests for Phase 2; no .NET implementation exists yet.
 
 The absence of a local clone is a visibility limitation only; this work is scoped to the remote GitHub `dev` baseline and isolated migration branch. No claim is made about unstaged changes in any developer's local working tree.
 
 ## Safety
 
-No production DSN, production payment endpoint or production deployment was used. No Go/Web business behavior, shared package, Desktop/Tauri/Rust/Cargo/sidecar workflow was modified. No database migration or destructive operation was run against a real database. No image publishing is configured for this branch.
+No production DSN, production payment endpoint or production deployment was used. No Go/Web business behavior, shared package, Desktop/Tauri/Rust/Cargo/sidecar workflow was modified. Only isolated integration tests were added to Go persistence packages. No database migration or destructive operation was run against a real database. No image publishing is configured for this branch.
 
 ## Next steps
 
-Complete the ephemeral database integration and catalog export/diff, finish handler DTO/permission mapping and resolve route discrepancies. Re-evaluate G0 only when those checks have evidence. Then start Phase 1 in a separate commit.
+Complete the isolated migration tests and catalog export/diff, finish handler DTO/permission mapping, add the three missing Web routes to the canonical API contract and resolve route discrepancies. Re-evaluate G0 only when those checks have evidence. Then start Phase 1 in a separate commit.

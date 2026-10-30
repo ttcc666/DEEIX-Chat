@@ -1,12 +1,12 @@
 # 04 — API compatibility matrix
 
-Source: `backend/docs/swagger.yaml` (Swagger 2.0, base path `/api/v1`). Detailed operation matrix: [03-API-INVENTORY.csv](03-API-INVENTORY.csv). Source call sites: [03A-WEB-API-CALLERS.csv](03A-WEB-API-CALLERS.csv). Go route registrations: [03B-GO-ROUTE-HANDLERS.csv](03B-GO-ROUTE-HANDLERS.csv). Coverage analysis: [03C-ROUTE-COVERAGE-REPORT.md](03C-ROUTE-COVERAGE-REPORT.md).
+Source: `backend/docs/swagger.yaml` (Swagger 2.0, base path `/api/v1`). Detailed operation matrix: [03-API-INVENTORY.csv](03-API-INVENTORY.csv). Source call sites: [03A-WEB-API-CALLERS.csv](03A-WEB-API-CALLERS.csv). Go route registrations: [03B-GO-ROUTE-HANDLERS.csv](03B-GO-ROUTE-HANDLERS.csv). Coverage analysis: [03C-ROUTE-COVERAGE-REPORT.md](03C-ROUTE-COVERAGE-REPORT.md). Web-used routes missing from Swagger: [03D-WEB-ONLY-UNSWAGGERED-ROUTES.csv](03D-WEB-ONLY-UNSWAGGERED-ROUTES.csv).
 
 ## Verified route and contract mapping
 
 - Swagger: 275 paths / 339 operations.
 - All 339 Swagger operations have an exact HTTP-method + normalized-path match to a Go router registration and handler.
-- Five Go route registrations are not represented as Swagger operations; see the coverage report for inclusion/exclusion decisions.
+- Five Go route registrations are not represented as Swagger operations. Three of these are called by Web and must be included in the canonical contract; two are provider/static routes.
 - The operation matrix includes request parameter summaries, **145 request-body schema references**, and **339 response-schema maps**.
 - Go base authentication contexts are mapped from the actual router registration chain: 168 authenticated + admin-only, 148 authenticated, 22 public/rate-limited and 1 local-mode-only.
 - 327 Web API call-site rows were inventoried. 321 Swagger operations have a direct Web path-literal match; 18 remain in a manual review bucket.
