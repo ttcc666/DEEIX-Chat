@@ -15,7 +15,7 @@ API route coverage is now reconciled and all currently uncalled Web routes have 
 - All three Web-used routes previously missing from Swagger are now documented: `/billing/config`, `/admin/billing/plans` and `/version`. EPay GET and POST callbacks are both documented.
 - Web callers: 329 source rows; 324 direct path-literal matches and 2 indirect browser-image callers. The remaining 17 operations without direct/indirect Web API callers are classified with evidence and migration dispositions in [03E-WEB-ROUTE-REVIEW.csv](03E-WEB-ROUTE-REVIEW.csv). No Web-used Go route remains missing from Swagger.
 - GORM: 65 registered models; all 65 explicit `TableName()` values verified against source.
-- Database source inventory: 886 flattened field rows, 430 GORM index members, 87 PostgreSQL custom DDL statements and 3 SQLite sqlite-vec tables.
+- Database source inventory: 985 flattened field rows, 493 GORM index members, 88 PostgreSQL custom DDL statements and 3 SQLite sqlite-vec tables.
 - Go: 939 source files / 323 test files.
 - Provider adapter variants: 16.
 
@@ -30,7 +30,7 @@ The absence of a local clone is a visibility limitation only; this work is scope
 
 ## Safety
 
-No production DSN, production payment endpoint or production deployment was used. No Go/Web business behavior was changed beyond extracting equivalent handler wrappers for route documentation. No Desktop/Tauri/Rust/Cargo/sidecar behavior was modified. Persistence tests use only ephemeral PostgreSQL and temporary SQLite databases. No destructive operation was run against a real database. No image publishing is configured for this branch.
+No production DSN, production payment endpoint or production deployment was used. No Go/Web API business behavior was changed beyond equivalent handler wrappers for route documentation. A targeted persistence migration correction now makes conversation-project public ID uniqueness apply only to non-deleted rows, matching the existing PostgreSQL DDL intent. No Desktop/Tauri/Rust/Cargo/sidecar behavior was modified. Persistence tests use only ephemeral PostgreSQL and temporary SQLite databases. No destructive operation was run against a real database. No image publishing is configured for this branch.
 
 ## Next steps
 

@@ -5,7 +5,7 @@
 | API/DTO/permission omissions | Critical | 339 operations map to Go handlers; 145 body schemas, 339 response schemas and base auth context mapped; handler DTO/fine-grained permissions remain | Partially mapped |
 | Web endpoint caller omissions | High | 321 direct path matches; 18 no-literal routes classified for manual review | Open |
 | Undocumented Go routes | Medium | Five route registrations absent from Swagger require include/exclude decisions | Open |
-| DB schema mismatch | Critical | 65 explicit tables, 886 fields, 430 index members and 87 custom DDL statements inventoried; physical catalog diff pending | Open |
+| DB schema mismatch | Critical | 65 explicit tables, 985 flattened fields, 493 index members and 88 custom DDL statements inventoried; physical catalog diff and partial-index upgrade verification in progress | Open |
 | bcrypt/AES/JWT incompatibility | Critical | Go/.NET golden vectors and old-session tests in Phase 2 | Open |
 | Payment double credit / ledger corruption | Critical | transactions, idempotency, concurrency, reconciliation | Open |
 | MCP privilege escalation / SSRF | Critical | signed context, outbound policy, DNS/redirect tests | Open |

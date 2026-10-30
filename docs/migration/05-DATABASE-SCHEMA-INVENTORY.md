@@ -4,9 +4,9 @@
 
 - `backend/internal/infra/persistence/schema/schema.go` registers **65 GORM models** through `Models()`.
 - All **65 explicit `TableName()` mappings** have been checked against their model source files; see [06-DATABASE-TABLE-MAPPING.csv](06-DATABASE-TABLE-MAPPING.csv).
-- [06B-DATABASE-FIELD-INVENTORY.csv](06B-DATABASE-FIELD-INVENTORY.csv) contains **886 flattened field rows** across the 65 models, including inherited `BaseModel` and `ControlPlaneModel` fields.
-- [06C-DATABASE-GORM-INDEX-MEMBERS.csv](06C-DATABASE-GORM-INDEX-MEMBERS.csv) records **430 GORM index-tag members**.
-- [06D-POSTGRES-CUSTOM-DDL.csv](06D-POSTGRES-CUSTOM-DDL.csv) records **87 PostgreSQL custom DDL statements**, including 35 index-related statements.
+- [06B-DATABASE-FIELD-INVENTORY.csv](06B-DATABASE-FIELD-INVENTORY.csv) contains **985 flattened field rows** across the 65 models, including inherited `BaseModel` and `ControlPlaneModel` fields.
+- [06C-DATABASE-GORM-INDEX-MEMBERS.csv](06C-DATABASE-GORM-INDEX-MEMBERS.csv) records **493 GORM index-tag members**.
+- [06D-POSTGRES-CUSTOM-DDL.csv](06D-POSTGRES-CUSTOM-DDL.csv) records **88 PostgreSQL custom DDL statements**, including 36 index-related statements.
 - [06E-VECTOR-STORAGE-INVENTORY.csv](06E-VECTOR-STORAGE-INVENTORY.csv) records the three SQLite sqlite-vec virtual tables.
 
 ## Migration behavior and destructive operations
@@ -39,3 +39,6 @@ The migration branch's isolated CI job exports the post-migration physical catal
 - `06E-VECTOR-STORAGE-INVENTORY.csv` — sqlite-vec virtual tables and embedding dimensions.
 
 The comparison script is `scripts/compare-db-catalogs.py`. It currently verifies table/column presence, declared NOT NULL/default semantics, primary keys, named GORM indexes, composite index order, partial-index predicates, custom PostgreSQL indexes and sqlite-vec DDL. PostgreSQL type families, foreign-key semantics, vector operator classes and soft-delete query behavior remain separate review items; a passing name/index comparison alone does not close those risks.
+
+ 
+The conversation-project public ID index is intentionally partial: `idx_chat_conversation_projects_public_id_active` enforces uniqueness only where `deleted_at IS NULL`. PostgreSQL and SQLite migrations now remove the legacy full unique index after the replacement partial index is created, so soft-deleted projects do not reserve public IDs forever.
