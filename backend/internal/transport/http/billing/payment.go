@@ -235,6 +235,7 @@ func (h *Handler) StripeWebhook(c *gin.Context) {
 // @Tags billing
 // @Produce text/plain
 // @Success 200 {string} string "success"
+// @Router /billing/payments/epay/notify [get]
 // @Router /billing/payments/epay/notify [post]
 func (h *Handler) EPayNotify(c *gin.Context) {
 	settings, err := h.resolvePaymentSettings(c.Request.Context())
