@@ -10591,6 +10591,23 @@ const docTemplate = `{
             }
         },
         "/billing/payments/epay/notify": {
+            "get": {
+                "produces": [
+                    "text/plain"
+                ],
+                "tags": [
+                    "billing"
+                ],
+                "summary": "易支付异步通知（GET）",
+                "responses": {
+                    "200": {
+                        "description": "success",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            },
             "post": {
                 "produces": [
                     "text/plain"

@@ -9352,6 +9352,21 @@ export namespace Billing {
   /**
    * No description
    * @tags billing
+   * @name PaymentsEpayNotifyList
+   * @summary 易支付异步通知（GET）
+   * @request GET:/billing/payments/epay/notify
+   */
+  export namespace PaymentsEpayNotifyList {
+    export type RequestParams = {};
+    export type RequestQuery = {};
+    export type RequestBody = never;
+    export type RequestHeaders = {};
+    export type ResponseBody = string;
+  }
+
+  /**
+   * No description
+   * @tags billing
    * @name PaymentsEpayNotifyCreate
    * @summary 易支付异步通知
    * @request POST:/billing/payments/epay/notify

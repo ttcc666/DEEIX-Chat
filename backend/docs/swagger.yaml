@@ -18840,6 +18840,17 @@ paths:
       tags:
       - billing
   /billing/payments/epay/notify:
+    get:
+      produces:
+      - text/plain
+      responses:
+        "200":
+          description: success
+          schema:
+            type: string
+      summary: 易支付异步通知（GET）
+      tags:
+      - billing
     post:
       produces:
       - text/plain
