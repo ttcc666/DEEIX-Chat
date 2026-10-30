@@ -79,8 +79,8 @@ jobs:
               "Web-used undocumented routes": (len(extra_web_rows), 0),
               "Reviewed non-Web routes": (len(review_rows), 17),
               "GORM table mappings": (len(table_rows), 65),
-              "GORM field rows": (len(field_rows), 886),
-              "GORM index members": (len(index_rows), 430),
+              "GORM field rows": (len(field_rows), 985),
+              "GORM index members": (len(index_rows), 493),
               "PostgreSQL custom DDL": (len(ddl_rows), 87),
               "SQLite vector tables": (len(vector_rows), 3),
           }
@@ -146,7 +146,7 @@ jobs:
           if any(row["dotnet_implementation"] != "NOT_STARTED" for row in api_rows):
               raise SystemExit("Do not mark .NET implementation started from an inventory-only commit")
 
-          print("Validated source inventory: 343 Swagger operations, 0 Web-used undocumented routes, 17 reviewed non-Web routes, 145 request schemas, 343 response schemas, 344 Go routes, 324 direct + 2 indirect Web callers, 65 tables, 886 fields, 430 index members, 87 PostgreSQL DDL statements and 3 vector tables.")
+          print("Validated source inventory: 343 Swagger operations, 0 Web-used undocumented routes, 17 reviewed non-Web routes, 145 request schemas, 343 response schemas, 344 Go routes, 324 direct + 2 indirect Web callers, 65 tables, 985 fields, 493 index members, 87 PostgreSQL DDL statements and 3 vector tables.")
           PY
 
   go-baseline:

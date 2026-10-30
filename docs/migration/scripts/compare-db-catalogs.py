@@ -18,7 +18,15 @@ def read_csv(path: Path) -> list[dict[str, str]]:
 
 
 def snake_case(value: str) -> str:
-    first = re.sub(r"(.)([A-Z][a-z]+)", r"\1_\2", value)
+    initialisms = (
+        "JWKS", "UUID", "HTTPS", "HTTP", "JSON", "URL", "URI", "ID",
+        "API", "LLM", "MCP", "OCR", "TTS", "STT", "S3", "IP", "DNS",
+        "JWT", "OIDC", "OAuth", "UI", "PDF", "CSV", "HTML", "XML",
+        "SQL", "SSH", "TLS",
+    )
+    for token in sorted(initialisms, key=len, reverse=True):
+        value = re.sub(token, token[0] + token[1:].lower(), value)
+    first = re.sub(r"([A-Z]+)([A-Z][a-z])", r"\1_\2", value)
     return re.sub(r"([a-z0-9])([A-Z])", r"\1_\2", first).lower()
 
 
@@ -26,6 +34,8 @@ def field_column(row: dict[str, str]) -> str | None:
     field = row["field"]
     tag = row.get("gorm_tag", "")
     if field in {"BaseModel", "ControlPlaneModel"}:
+        return None
+    if "-:migration" in tag:
         return None
     if re.search(r"(?:^|;)-(?:;|$)", tag) or "-:all" in tag:
         return None
@@ -77,9 +87,13 @@ def main() -> int:
 
     pg_tables = set(pg.get("tables", []))
     sqlite_tables = set(sqlite.get("tables", []))
+    sqlite_application_tables = {
+        name for name in sqlite_tables
+        if not any(name.startswith(vector + "_") for vector in vector_tables)
+    }
     for label, expected, actual in (
         ("PostgreSQL model tables", model_tables, pg_tables),
-        ("SQLite model tables", model_tables, sqlite_tables),
+        ("SQLite model tables", model_tables, sqlite_application_tables),
         ("SQLite sqlite-vec tables", vector_tables, sqlite_tables),
     ):
         missing = sorted(expected - actual)
@@ -185,6 +199,20 @@ def main() -> int:
         if row["index_kind"] == "primaryKey" or row["index_name"] in {"", "GORM_DEFAULT"}:
             continue
         gorm_groups[(row["table_name"], row["index_name"])].append(row)
+    # GORM's unnamed index tag uses idx_<table>_<column>; materialize those names
+    # so the embedded BaseModel soft-delete indexes are verified as well.
+    for row in fields:
+        tag = row.get("gorm_tag", "")
+        if not re.search(r"(?:^|;)index(?:;|$)", tag):
+            continue
+        if re.search(r"(?:^|;)(?:index|uniqueIndex):", tag):
+            continue
+        column = field_column(row)
+        if not column:
+            continue
+        table = row["table_name"]
+        name = f"idx_{table}_{column}"
+        gorm_groups.setdefault((table, name), []).append({**row, "raw_tag": tag})
 
     missing_pg_indexes: list[str] = []
     missing_sqlite_indexes: list[str] = []
@@ -215,7 +243,7 @@ def main() -> int:
                 index_definition_errors.append(
                     f"SQLite {table}.{name} columns {actual_columns} differ from {expected_columns}"
                 )
-        if any("where:" in member.get("raw_tag", "").lower() for _, member in members):
+        if any("where:" in member.get("raw_tag", member.get("gorm_tag", "")).lower() for _, member in members):
             if pg_definition and "where" not in pg_definition.lower():
                 index_definition_errors.append(f"PostgreSQL partial index {table}.{name} has no predicate")
             if sqlite_definition and "where" not in sqlite_definition.get("sql", "").lower():
@@ -231,7 +259,11 @@ def main() -> int:
 
     custom_indexes = [
         row for row in postgres_ddl
-        if row["statement_type"] in {"CREATE INDEX", "CREATE UNIQUE INDEX"} and row.get("object_name")
+        if row["statement_type"] in {"CREATE INDEX", "CREATE UNIQUE INDEX"}
+        and row.get("object_name")
+        and row.get("table_name")
+        and "%" not in row.get("sql", "")
+        and "{table}" not in row.get("sql", "")
     ]
     custom_index_errors: list[str] = []
     for row in custom_indexes:
@@ -242,8 +274,20 @@ def main() -> int:
             continue
         normalized = normalized_sql(definition)
         expected_columns = re.findall(r'"([^"]+)"', row.get("columns", ""))
-        if expected_columns and "(" + ",".join(expected_columns).lower() + ")" not in normalized:
-            custom_index_errors.append(f"PostgreSQL custom index {key[1]} columns differ from inventory")
+        if expected_columns:
+            using = re.search(r"\bUSING\s+\w+\s*\((.*)\)(?:\s+WHERE\s+.*)?$", definition, re.IGNORECASE)
+            section = using.group(1) if using else definition[definition.find("(") + 1:definition.rfind(")")]
+            position = 0
+            for column in expected_columns:
+                match = re.search(
+                    rf"(?<![a-z0-9_]){re.escape(column.lower())}(?![a-z0-9_])",
+                    section[position:],
+                    re.IGNORECASE,
+                )
+                if not match:
+                    custom_index_errors.append(f"PostgreSQL custom index {key[1]} columns differ from inventory")
+                    break
+                position += match.end()
         if row.get("predicate") and "where" not in definition.lower():
             custom_index_errors.append(f"PostgreSQL custom partial index {key[1]} has no predicate")
     errors.extend(custom_index_errors[:30])
@@ -295,7 +339,7 @@ def main() -> int:
         f"- PostgreSQL columns: {len(pg.get('columns', []))}",
         f"- PostgreSQL indexes: {len(pg_index_rows)}",
         f"- PostgreSQL constraints: {len(pg.get('constraints', []))}",
-        f"- SQLite tables: {len(sqlite_tables)} (expected {len(model_tables) + len(vector_tables)})",
+        f"- SQLite tables: {len(sqlite_tables)} physical including sqlite-vec shadow tables (expected {len(model_tables) + len(vector_tables)} application/virtual tables)",
         f"- SQLite columns: {len(sqlite.get('columns', []))}",
         f"- SQLite indexes: {len(sqlite_index_rows)}",
         f"- GORM named indexes checked: {len(gorm_groups)}",
