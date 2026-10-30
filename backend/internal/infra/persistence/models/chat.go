@@ -33,7 +33,7 @@ func (Conversation) TableName() string {
 type ConversationProject struct {
 	BaseModel
 	UserID         uint   `gorm:"not null;index:idx_chat_conversation_projects_user_id;comment:用户ID"`
-	PublicID       string `gorm:"size:32;not null;default:'';uniqueIndex:idx_chat_conversation_projects_public_id;comment:公开项目ID"`
+	PublicID       string `gorm:"size:32;not null;default:'';uniqueIndex:idx_chat_conversation_projects_public_id_active,where:deleted_at IS NULL;comment:公开项目ID"`
 	Name           string `gorm:"size:80;not null;default:'';comment:项目名称"`
 	Description    string `gorm:"size:255;not null;default:'';comment:项目描述"`
 	SystemPrompt   string `gorm:"type:text;not null;default:'';comment:项目级系统提示词"`

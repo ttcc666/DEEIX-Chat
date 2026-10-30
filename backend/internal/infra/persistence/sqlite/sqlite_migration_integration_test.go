@@ -8,6 +8,7 @@ import (
 	"strings"
 	"testing"
 
+	gormsqlite "gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 
 	"github.com/DEEIX-AI/DEEIX-Chat/backend/internal/infra/config"
@@ -15,8 +16,27 @@ import (
 )
 
 func TestNewMigratesAllRegisteredModelsAndVectorTables(t *testing.T) {
+	sqlitePath := filepath.Join(t.TempDir(), "migration-catalog.sqlite")
+	legacyDB, err := gorm.Open(gormsqlite.Open(sqlitePath), &gorm.Config{})
+	if err != nil {
+		t.Fatalf("open legacy SQLite database: %v", err)
+	}
+	if err = legacyDB.Exec(`CREATE TABLE chat_conversation_projects (id INTEGER PRIMARY KEY AUTOINCREMENT, created_at DATETIME, updated_at DATETIME, deleted_at DATETIME, user_id INTEGER NOT NULL, public_id TEXT NOT NULL)`).Error; err != nil {
+		t.Fatalf("create legacy conversation projects table: %v", err)
+	}
+	if err = legacyDB.Exec(`CREATE UNIQUE INDEX idx_chat_conversation_projects_public_id ON chat_conversation_projects (public_id)`).Error; err != nil {
+		t.Fatalf("create legacy full unique index: %v", err)
+	}
+	legacySQLDB, err := legacyDB.DB()
+	if err != nil {
+		t.Fatalf("resolve legacy SQLite connection: %v", err)
+	}
+	if err = legacySQLDB.Close(); err != nil {
+		t.Fatalf("close legacy SQLite connection: %v", err)
+	}
+
 	db, err := New(config.Config{
-		SQLitePath:          filepath.Join(t.TempDir(), "migration-catalog.sqlite"),
+		SQLitePath:          sqlitePath,
 		SQLiteBusyTimeoutMS: 5000,
 		SQLiteCacheSizeKB:   2048,
 		SQLiteSynchronous:   "NORMAL",
@@ -31,6 +51,20 @@ func TestNewMigratesAllRegisteredModelsAndVectorTables(t *testing.T) {
 		t.Fatalf("resolve SQLite connection: %v", err)
 	}
 	t.Cleanup(func() { _ = sqlDB.Close() })
+
+	var legacyIndexDDL, activeIndexDDL string
+	if err = db.Raw("SELECT sql FROM sqlite_master WHERE type = 'index' AND name = ?", "idx_chat_conversation_projects_public_id").Scan(&legacyIndexDDL).Error; err != nil {
+		t.Fatalf("inspect legacy full unique index: %v", err)
+	}
+	if legacyIndexDDL != "" {
+		t.Errorf("legacy full unique index still exists after migration: %s", legacyIndexDDL)
+	}
+	if err = db.Raw("SELECT sql FROM sqlite_master WHERE type = 'index' AND name = ?", "idx_chat_conversation_projects_public_id_active").Scan(&activeIndexDDL).Error; err != nil {
+		t.Fatalf("inspect active partial unique index: %v", err)
+	}
+	if activeIndexDDL == "" || !strings.Contains(strings.ToLower(activeIndexDDL), "where") {
+		t.Errorf("active project unique index is missing or not partial: %s", activeIndexDDL)
+	}
 
 	models := persistenceSchema.Models()
 	if len(models) != 65 {

@@ -34,6 +34,11 @@ func New(cfg config.Config) (*gorm.DB, error) {
 	if err = schema.Migrate(db); err != nil {
 		return nil, err
 	}
+	// Remove the legacy full unique index after AutoMigrate has created the
+	// replacement partial unique index for active (non-soft-deleted) projects.
+	if err = db.Exec("DROP INDEX IF EXISTS idx_chat_conversation_projects_public_id").Error; err != nil {
+		return nil, err
+	}
 	if err = schema.SeedModelVendors(db); err != nil {
 		return nil, err
 	}

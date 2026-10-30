@@ -380,7 +380,8 @@ func applyConversationBaselineIndexes(db *gorm.DB) error {
 		ON "chat_conversations" ("user_id", "status", "is_starred", "updated_at" DESC, "id" DESC)`,
 		`CREATE INDEX IF NOT EXISTS idx_chat_conversations_user_status_starred_starred_at
 		ON "chat_conversations" ("user_id", "status", "is_starred", "starred_at" DESC, "id" DESC)`,
-		`CREATE UNIQUE INDEX IF NOT EXISTS idx_chat_conversation_projects_public_id
+		`DROP INDEX IF EXISTS idx_chat_conversation_projects_public_id`,
+		`CREATE UNIQUE INDEX IF NOT EXISTS idx_chat_conversation_projects_public_id_active
 		ON "chat_conversation_projects" ("public_id")
 		WHERE deleted_at IS NULL`,
 		`CREATE INDEX IF NOT EXISTS idx_chat_conversation_projects_user_status_sort
