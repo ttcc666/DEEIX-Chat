@@ -8,6 +8,8 @@ import (
 	"strings"
 	"testing"
 
+	"gorm.io/gorm"
+
 	"github.com/DEEIX-AI/DEEIX-Chat/backend/internal/infra/config"
 	persistenceSchema "github.com/DEEIX-AI/DEEIX-Chat/backend/internal/infra/persistence/schema"
 )
