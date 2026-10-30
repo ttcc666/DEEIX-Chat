@@ -2019,6 +2019,14 @@ export interface ImportUpstreamModelsResponseDoc {
   errorMsg: string;
 }
 
+export interface Info {
+  buildID: string;
+  buildTime: string;
+  commit: string;
+  product: string;
+  version: string;
+}
+
 export interface KnowledgeBaseDataResponse {
   knowledgeBase: KnowledgeBaseResponse;
 }
@@ -5812,6 +5820,22 @@ export namespace Admin {
   }
 
   /**
+   * @description 查询管理员可配置的订阅套餐及价格
+   * @tags admin-billing
+   * @name BillingPlansList
+   * @summary 管理员查询计费套餐
+   * @request GET:/admin/billing/plans
+   * @secure
+   */
+  export namespace BillingPlansList {
+    export type RequestParams = {};
+    export type RequestQuery = {};
+    export type RequestBody = never;
+    export type RequestHeaders = {};
+    export type ResponseBody = PlanListResponseDoc;
+  }
+
+  /**
    * @description 更新周期套餐基础配置与默认价格
    * @tags admin-billing
    * @name BillingPlansPartialUpdate
@@ -9278,6 +9302,22 @@ export namespace Billing {
   }
 
   /**
+   * @description 查询当前全局计费模式与展示配置
+   * @tags billing
+   * @name ConfigList
+   * @summary 查询当前用户可见的计费配置
+   * @request GET:/billing/config
+   * @secure
+   */
+  export namespace ConfigList {
+    export type RequestParams = {};
+    export type RequestQuery = {};
+    export type RequestBody = never;
+    export type RequestHeaders = {};
+    export type ResponseBody = BillingConfigResponseDoc;
+  }
+
+  /**
    * @description 查询当前计费方式、周期额度或按量余额
    * @tags billing
    * @name OverviewList
@@ -12067,5 +12107,22 @@ export namespace Users {
     export type RequestBody = never;
     export type RequestHeaders = {};
     export type ResponseBody = File;
+  }
+}
+
+export namespace Version {
+  /**
+   * @description 返回当前服务版本、提交和构建信息
+   * @tags system
+   * @name VersionList
+   * @summary 获取 API 构建版本
+   * @request GET:/version
+   */
+  export namespace VersionList {
+    export type RequestParams = {};
+    export type RequestQuery = {};
+    export type RequestBody = never;
+    export type RequestHeaders = {};
+    export type ResponseBody = Info;
   }
 }

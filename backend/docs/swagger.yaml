@@ -4539,6 +4539,25 @@ definitions:
     - data
     - errorMsg
     type: object
+  Info:
+    properties:
+      buildID:
+        type: string
+      buildTime:
+        type: string
+      commit:
+        type: string
+      product:
+        type: string
+      version:
+        type: string
+    required:
+    - buildID
+    - buildTime
+    - commit
+    - product
+    - version
+    type: object
   KnowledgeBaseDataResponse:
     properties:
       knowledgeBase:
@@ -12636,6 +12655,27 @@ paths:
       summary: 管理员获取 OpenRouter 官方模型目录
       tags:
       - admin-billing
+  /admin/billing/plans:
+    get:
+      consumes:
+      - application/json
+      description: 查询管理员可配置的订阅套餐及价格
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/PlanListResponseDoc'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/BillingErrorDoc'
+      security:
+      - BearerAuth: []
+      summary: 管理员查询计费套餐
+      tags:
+      - admin-billing
   /admin/billing/plans/{id}:
     patch:
       consumes:
@@ -18725,6 +18765,27 @@ paths:
       summary: 获取按量计费账户
       tags:
       - billing
+  /billing/config:
+    get:
+      consumes:
+      - application/json
+      description: 查询当前全局计费模式与展示配置
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/BillingConfigResponseDoc'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/BillingErrorDoc'
+      security:
+      - BearerAuth: []
+      summary: 查询当前用户可见的计费配置
+      tags:
+      - billing
   /billing/overview:
     get:
       consumes:
@@ -23704,6 +23765,19 @@ paths:
       summary: 获取用户头像
       tags:
       - user
+  /version:
+    get:
+      description: 返回当前服务版本、提交和构建信息
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/Info'
+      summary: 获取 API 构建版本
+      tags:
+      - system
 securityDefinitions:
   BearerAuth:
     in: header

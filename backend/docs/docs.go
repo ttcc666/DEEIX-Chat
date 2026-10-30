@@ -868,6 +868,40 @@ const docTemplate = `{
                 }
             }
         },
+        "/admin/billing/plans": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "查询管理员可配置的订阅套餐及价格",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "admin-billing"
+                ],
+                "summary": "管理员查询计费套餐",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/PlanListResponseDoc"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/BillingErrorDoc"
+                        }
+                    }
+                }
+            }
+        },
         "/admin/billing/plans/{id}": {
             "patch": {
                 "security": [
@@ -10437,6 +10471,40 @@ const docTemplate = `{
                 }
             }
         },
+        "/billing/config": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "查询当前全局计费模式与展示配置",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "billing"
+                ],
+                "summary": "查询当前用户可见的计费配置",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/BillingConfigResponseDoc"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/BillingErrorDoc"
+                        }
+                    }
+                }
+            }
+        },
         "/billing/overview": {
             "get": {
                 "security": [
@@ -18266,6 +18334,26 @@ const docTemplate = `{
                     }
                 }
             }
+        },
+        "/version": {
+            "get": {
+                "description": "返回当前服务版本、提交和构建信息",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "system"
+                ],
+                "summary": "获取 API 构建版本",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/Info"
+                        }
+                    }
+                }
+            }
         }
     },
     "definitions": {
@@ -24684,6 +24772,33 @@ const docTemplate = `{
                     "$ref": "#/definitions/ImportUpstreamModelsResponse"
                 },
                 "errorMsg": {
+                    "type": "string"
+                }
+            }
+        },
+        "Info": {
+            "type": "object",
+            "required": [
+                "buildID",
+                "buildTime",
+                "commit",
+                "product",
+                "version"
+            ],
+            "properties": {
+                "buildID": {
+                    "type": "string"
+                },
+                "buildTime": {
+                    "type": "string"
+                },
+                "commit": {
+                    "type": "string"
+                },
+                "product": {
+                    "type": "string"
+                },
+                "version": {
                     "type": "string"
                 }
             }
