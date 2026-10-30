@@ -1,0 +1,4 @@
+"engine","table_name","key_columns","partition_column","signature_column","embedding_dimensions","distance_metric","source_file"
+"SQLite sqlite-vec","file_chunk_vectors","chunk_id,user_id,file_obj_id","user_id","embedding_signature","4096","cosine","backend/internal/infra/persistence/sqlitevec/sqlitevec.go"
+"SQLite sqlite-vec","chat_message_chunk_vectors","chunk_id,user_id,conversation_id,message_id","user_id","embedding_signature","4096","cosine","backend/internal/infra/persistence/sqlitevec/sqlitevec.go"
+"SQLite sqlite-vec","user_memory_vectors","memory_id,user_id","user_id","embedding_signature","4096","cosine","backend/internal/infra/persistence/sqlitevec/sqlitevec.go"
