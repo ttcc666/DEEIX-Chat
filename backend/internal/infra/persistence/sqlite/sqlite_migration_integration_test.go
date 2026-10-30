@@ -82,10 +82,10 @@ func containsSQLiteVec(ddl string) bool {
 }
 
 type sqliteCatalogSnapshot struct {
-	Tables  []string                  `json:"tables"`
-	Objects []sqliteCatalogObject     `json:"objects"`
-	Columns []sqliteCatalogColumn     `json:"columns"`
-	Indexes []sqliteCatalogIndex      `json:"indexes"`
+	Tables  []string              `json:"tables"`
+	Objects []sqliteCatalogObject `json:"objects"`
+	Columns []sqliteCatalogColumn `json:"columns"`
+	Indexes []sqliteCatalogIndex  `json:"indexes"`
 }
 
 type sqliteCatalogObject struct {
