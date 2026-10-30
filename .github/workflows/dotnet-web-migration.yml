@@ -42,7 +42,7 @@ jobs:
               "00-SOURCE-BASELINE.md", "01-WEB-SCOPE-AND-EXCLUSIONS.md",
               "02-WEB-DEPENDENCY-MAP.md", "03-API-INVENTORY.csv",
               "03A-WEB-API-CALLERS.csv", "03B-GO-ROUTE-HANDLERS.csv",
-              "03C-ROUTE-COVERAGE-REPORT.md", "03D-WEB-ONLY-UNSWAGGERED-ROUTES.csv",
+              "03C-ROUTE-COVERAGE-REPORT.md", "03D-WEB-ONLY-UNSWAGGERED-ROUTES.csv", "03E-WEB-ROUTE-REVIEW.csv",
               "04-API-COMPATIBILITY-MATRIX.md", "05-DATABASE-SCHEMA-INVENTORY.md",
               "05B-DATABASE-INDEX-INVENTORY.md", "06-DATABASE-TABLE-MAPPING.csv",
               "06B-DATABASE-FIELD-INVENTORY.csv", "06C-DATABASE-GORM-INDEX-MEMBERS.csv",
@@ -65,6 +65,7 @@ jobs:
           web_rows = load("03A-WEB-API-CALLERS.csv")
           go_rows = load("03B-GO-ROUTE-HANDLERS.csv")
           extra_web_rows = load("03D-WEB-ONLY-UNSWAGGERED-ROUTES.csv")
+          review_rows = load("03E-WEB-ROUTE-REVIEW.csv")
           table_rows = load("06-DATABASE-TABLE-MAPPING.csv")
           field_rows = load("06B-DATABASE-FIELD-INVENTORY.csv")
           index_rows = load("06C-DATABASE-GORM-INDEX-MEMBERS.csv")
@@ -72,10 +73,11 @@ jobs:
           vector_rows = load("06E-VECTOR-STORAGE-INVENTORY.csv")
 
           expected = {
-              "Swagger operations": (len(api_rows), 339),
+              "Swagger operations": (len(api_rows), 343),
               "Web caller rows": (len(web_rows), 329),
               "Go route registrations": (len(go_rows), 344),
-              "Web-used undocumented routes": (len(extra_web_rows), 3),
+              "Web-used undocumented routes": (len(extra_web_rows), 0),
+              "Reviewed non-Web routes": (len(review_rows), 17),
               "GORM table mappings": (len(table_rows), 65),
               "GORM field rows": (len(field_rows), 886),
               "GORM index members": (len(index_rows), 430),
@@ -88,26 +90,50 @@ jobs:
 
           if any(not row["go_handler"] for row in api_rows):
               raise SystemExit("Every Swagger operation must map to a Go handler")
-          if sum(row["web_caller_mapping"] == "PATH_MATCH_ONLY" for row in api_rows) != 321:
-              raise SystemExit("Expected 321 direct Web path matches; review API caller inventory")
+          if sum(row["web_caller_mapping"] == "PATH_MATCH_ONLY" for row in api_rows) != 324:
+              raise SystemExit("Expected 324 direct Web path matches; review API caller inventory")
           if sum(row["web_caller_mapping"] == "INDIRECT_IMAGE_MATCH" for row in api_rows) != 2:
               raise SystemExit("Expected 2 indirect browser-image callers; review caller inventory")
-          if sum(row["web_caller_mapping"] == "NO_LITERAL_MATCH_REVIEW" for row in api_rows) != 16:
-              raise SystemExit("Expected 16 unresolved Web caller routes; review coverage report")
+          expected_mapping_counts = {
+              "PATH_MATCH_ONLY": 324,
+              "INDIRECT_IMAGE_MATCH": 2,
+              "WEB_SCOPE_EXCLUDED_RUNTIME_ACTION": 6,
+              "DESKTOP_ONLY_EXCLUDED": 1,
+              "BROWSER_REDIRECT_CALLBACK": 1,
+              "PROVIDER_CALLBACK_NO_WEB_CALLER": 3,
+              "STATIC_RESOURCE_ALIAS": 1,
+              "SUPERSEDED_BY_BATCH_API": 1,
+              "NO_WEB_CALLER_REVIEWED": 4,
+          }
+          mapping_counts = {}
+          for row in api_rows:
+              key = row["web_caller_mapping"]
+              mapping_counts[key] = mapping_counts.get(key, 0) + 1
+          if mapping_counts != expected_mapping_counts:
+              raise SystemExit(f"Web caller classifications differ: {mapping_counts}")
+          reviewed_keys = {(row["http_method"], row["path"]) for row in review_rows}
+          non_web_keys = {
+              (row["http_method"], row["path"])
+              for row in api_rows
+              if row["web_caller_mapping"] not in {"PATH_MATCH_ONLY", "INDIRECT_IMAGE_MATCH"}
+          }
+          if reviewed_keys != non_web_keys:
+              raise SystemExit("The non-Web API routes and the explicit route review must match")
           if sum(row["has_body_parameter"] == "true" for row in api_rows) != 145:
               raise SystemExit("Expected 145 Swagger request bodies")
           if sum(bool(row["request_body_schema"]) for row in api_rows) != 145:
               raise SystemExit("Request body schema extraction is incomplete")
-          if sum(bool(row["response_schemas"]) for row in api_rows) != 339:
+          if sum(bool(row["response_schemas"]) for row in api_rows) != 343:
               raise SystemExit("Response schema extraction is incomplete")
           auth_counts = {}
           for row in api_rows:
               auth_counts[row["go_auth_context"]] = auth_counts.get(row["go_auth_context"], 0) + 1
           expected_auth = {
-              "AUTHENTICATED+ADMIN_ONLY": 168,
-              "AUTHENTICATED": 148,
-              "PUBLIC_RATE_LIMITED": 22,
+              "AUTHENTICATED+ADMIN_ONLY": 169,
+              "AUTHENTICATED": 149,
+              "PUBLIC_RATE_LIMITED": 23,
               "LOCAL_MODE_ONLY": 1,
+              "PUBLIC_NO_AUTH": 1,
           }
           if auth_counts != expected_auth:
               raise SystemExit(f"Go auth context counts differ: {auth_counts}")
@@ -120,7 +146,7 @@ jobs:
           if any(row["dotnet_implementation"] != "NOT_STARTED" for row in api_rows):
               raise SystemExit("Do not mark .NET implementation started from an inventory-only commit")
 
-          print("Validated source inventory: 339 Swagger operations, 3 Web-used undocumented routes, 145 request schemas, 339 response schemas, 344 Go routes, 321 direct + 2 indirect Web callers, 65 tables, 886 fields, 430 index members, 87 PostgreSQL DDL statements and 3 vector tables.")
+          print("Validated source inventory: 343 Swagger operations, 0 Web-used undocumented routes, 17 reviewed non-Web routes, 145 request schemas, 343 response schemas, 344 Go routes, 324 direct + 2 indirect Web callers, 65 tables, 886 fields, 430 index members, 87 PostgreSQL DDL statements and 3 vector tables.")
           PY
 
   go-baseline:

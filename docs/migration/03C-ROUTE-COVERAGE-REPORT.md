@@ -4,57 +4,53 @@
 
 | Inventory | Count |
 |---|---:|
-| Swagger paths | 275 |
-| Swagger operations | 339 |
+| Swagger paths | 278 |
+| Swagger operations | 343 |
 | Go route registrations | 344 |
-| Swagger operations with exact Go method/path/handler mapping | 339 |
+| Swagger operations with exact Go method/path/handler mapping | 343 |
 | Request-body schema references | 145 |
-| Response-schema maps | 339 |
-| Go authenticated + admin-only base contexts | 168 |
-| Go authenticated base contexts | 148 |
-| Go public/rate-limited base contexts | 22 |
+| Response-schema maps | 343 |
+| Go authenticated + admin-only base contexts | 169 |
+| Go authenticated base contexts | 149 |
+| Go public/rate-limited base contexts | 23 |
 | Go local-mode-only contexts | 1 |
+| Go public/no-auth/no-rate-limit contexts | 1 |
 | Web API caller source rows | 329 |
-| Operations with direct Web path-literal match | 321 |
+| Operations with direct Web path-literal match | 324 |
 | Operations with indirect browser-image caller | 2 |
-| Operations without direct or indirect Web caller evidence | 16 |
-| Go route registrations not represented in Swagger | 5 |
-| Web-used Go routes missing from Swagger | 3 |
+| Operations with an explicit non-Web caller disposition | 17 |
+| Web-used Go routes missing from Swagger | 0 |
+| Go registrations outside the API contract | 1 |
 
-The detailed join is in [03-API-INVENTORY.csv](03-API-INVENTORY.csv). The source call sites are in [03A-WEB-API-CALLERS.csv](03A-WEB-API-CALLERS.csv); Go registrations are in [03B-GO-ROUTE-HANDLERS.csv](03B-GO-ROUTE-HANDLERS.csv). The three Web-used undocumented operations are listed in [03D-WEB-ONLY-UNSWAGGERED-ROUTES.csv](03D-WEB-ONLY-UNSWAGGERED-ROUTES.csv).
+The detailed operation join is in [03-API-INVENTORY.csv](03-API-INVENTORY.csv). Source call sites are in [03A-WEB-API-CALLERS.csv](03A-WEB-API-CALLERS.csv); Go registrations are in [03B-GO-ROUTE-HANDLERS.csv](03B-GO-ROUTE-HANDLERS.csv). The 17 operations without a direct or indirect Web API caller are explicitly classified, with evidence and migration disposition, in [03E-WEB-ROUTE-REVIEW.csv](03E-WEB-ROUTE-REVIEW.csv). [03D-WEB-ONLY-UNSWAGGERED-ROUTES.csv](03D-WEB-ONLY-UNSWAGGERED-ROUTES.csv) is now header-only: all three Web-used undocumented operations have been added to the canonical OpenAPI contract.
 
-The Go auth context is the base middleware inherited from the server router: public routes use the public auth/rate-limit group, authenticated routes use JWT authentication and rate limiting, and admin routes additionally use `AdminOnly`. This does not replace handler-level ownership or permission-group checks.
+The Go auth context is the base middleware inherited from the server router: public routes use the public auth/rate-limit group, authenticated routes use JWT authentication and rate limiting, and admin routes additionally use `AdminOnly`. `GET /version` is registered directly on the API group before either auth group, so it is classified as public with no auth/rate-limit middleware. This does not replace handler-level ownership or permission-group checks.
 
-## Five Go registrations not represented in Swagger
+## Route inventory reconciliation
 
-| Method | Route | Handler | Web caller | Review |
-|---|---|---|---|---|
-| GET | `/api/v1/billing/payments/epay/notify` | `EPayNotify` | Provider callback; no Web API caller | Determine whether to document as provider callback or retire |
-| GET | `/api/v1/billing/config` | `GetBillingConfig` | `apps/web/shared/api/billing.ts:19` | Add to canonical OpenAPI contract |
-| GET | `/api/v1/admin/billing/plans` | `ListPlans` | `apps/web/features/admin/api/billing.ts:41` | Add to canonical OpenAPI contract |
-| GET | `/api/v1/version` | `buildinfo.Snapshot` | `apps/web/shared/api/app-version.ts:14` | Add to canonical OpenAPI contract |
-| GET | `/manifest.webmanifest` | `GetBrandingManifest` | Browser manifest route; no API module caller | Document as static Web behavior outside `/api/v1` |
+- The three Web-used routes previously missing from Swagger are now documented: `GET /billing/config`, `GET /admin/billing/plans` and `GET /version`.
+- The EPay GET notification callback is now documented separately from its POST callback. Both use the same payment notification validation and completion logic.
+- All 343 Swagger operations map to a Go method/path and handler.
+- The only Go registration outside the `/api/v1` contract is `GET /manifest.webmanifest`. It is a browser-facing static manifest route that reuses the handler documented at `GET /branding/manifest.webmanifest`; preserve the root route in the Web/static hosting layer.
 
-## Eighteen Swagger operations without a direct path-literal match in the inventoried Web API modules
+## Seventeen operations without direct or indirect Web API callers
 
-| Group | Routes | Caller evidence / initial interpretation |
-|---|---|---|
-| Admin runtime controls (6) | RapidOCR and Tika start/stop/restart | No direct caller found in current Admin API modules |
-| Desktop/local auth (1) | `POST /auth/local/exchange` | Likely Desktop-only; explicitly excluded from Web migration unless evidence says otherwise |
-| OIDC callback (1) | `GET /auth/providers/{slug}/callback` | Browser/provider redirect callback, not an ordinary API client call |
-| Payment callbacks (2) | EPay notify and Stripe webhook | Provider-to-server callbacks, not browser callers |
-| Branding manifest (1) | `GET /branding/manifest.webmanifest` | Browser/static resource path |
-| File processing (1) | `GET /files/{file_id}/processing` | No direct Web caller; check whether replaced by batch processing-status APIs |
-| Model icon asset (1) | `GET /llm/icon-assets/{public_id}` | Indirect browser image caller confirmed: `apps/web/entities/model/components/model-icon.tsx:10` |
-| User UI components (4) | `/ui-components/mine` GET/POST/PATCH/DELETE | No direct caller found in current Web API module; confirm whether feature is unused |
-| User avatar (1) | `GET /users/{public_id}/avatar` | Indirect browser image caller confirmed: `apps/web/shared/lib/avatar.ts:185` |
+| Group | Count | Disposition |
+|---|---:|---|
+| RapidOCR and Tika runtime start/stop/restart | 6 | Web exposes runtime status probes and a test/refresh action only; exclude these action routes from the Web migration, but retain until external consumers are checked |
+| Local auth exchange | 1 | Desktop/sidecar-only; excluded from Web scope |
+| OIDC provider callback | 1 | Browser redirect callback; preserve 302 and state-validation semantics |
+| Payment provider callbacks | 3 | EPay GET/POST and Stripe webhook; preserve provider protocols, not browser API calls |
+| Branding manifest API alias | 1 | Static resource alias; preserve the root `/manifest.webmanifest` route |
+| Single-file processing status | 1 | Web uses the batch POST endpoint; keep the single-file route until external consumers are checked |
+| User-owned UI component routes | 4 | No current Web client wrapper/callsite; keep out of Web scope pending external-consumer review |
 
-“Without a direct path-literal match” is not equivalent to “unused”. Two of the 18 have confirmed indirect browser-image callers; the remaining 16 still need an explicit decision.
+The model-icon and user-avatar routes are not in this no-caller group: both have confirmed indirect browser-image callers and are classified as `INDIRECT_IMAGE_MATCH`.
 
 ## Mapping limitations
 
 - All Swagger operations include their Go handler and router source file.
-- The operation matrix now records request parameters, body schema references, response schema references and base auth context.
-- Web matching is path-only: the caller inventory records file/line, but this pass does not claim AST-verified HTTP-method equivalence.
+- The operation matrix records request parameters, body schema references, response schema references and base auth context.
+- Web matching remains path-based: caller rows record source file/line, but this pass does not claim AST-verified HTTP-method equivalence for every call.
 - Handler-level DTO equivalence, fine-grained permissions, error/streaming contract verification and .NET implementation remain open.
 - The API CSV intentionally keeps .NET implementation and compatibility status as `NOT_STARTED` / `NOT_MAPPED`.

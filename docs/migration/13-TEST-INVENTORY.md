@@ -5,18 +5,19 @@
 - Existing Go source files: 939; Go test files: 323.
 - Existing `.github/workflows/ci.yml` includes API lint/build/test, Web check/test/build, Desktop Rust/sidecar checks, Python, Docker and dependency audits.
 - The migration workflow is branch-scoped and does not publish images or deploy.
+- The API contract generation workflow runs the pinned Go Swagger generator from source annotations, formats the touched Go files, regenerates Swagger JSON/YAML/docs.go and TypeScript definitions, and runs `pnpm api:check` before committing generated artifacts.
 
 ## Migration branch workflow
 
 `.github/workflows/dotnet-web-migration.yml` runs:
 
-1. Inventory validation: 339 Swagger operations, 344 Go route registrations, 329 Web caller rows (321 direct path matches, 2 indirect image callers, 16 manual review), 3 Web-used Go routes missing from Swagger, 65 explicit GORM table mappings, 886 flattened model fields, 430 GORM index members, 87 PostgreSQL custom DDL statements and 3 SQLite vector tables. It also validates 145 request-body schema references, 339 response-schema maps and the four Go base-auth context buckets.
+1. Inventory validation: 343 Swagger operations, 344 Go route registrations, 329 Web caller rows (324 direct path matches, 2 indirect image callers, 17 reviewed non-Web routes), zero Web-used routes missing from Swagger, 65 explicit GORM table mappings, 886 flattened model fields, 430 GORM index members, 87 PostgreSQL custom DDL statements and 3 SQLite vector tables. It also validates 145 request-body schema references, 343 response-schema maps and five Go base-auth context buckets.
 2. Go lint, default build/test and Desktop-sidecar-tag build/test. The Go suite includes a full SQLite `sqlite.New` migration test that verifies all 65 registered models and three sqlite-vec virtual tables.
 3. Web dependency install, lint/type/architecture/API-contract checks, package tests and static build.
 4. PostgreSQL persistence integration tests against an ephemeral pgvector service with `DEEIX_TEST_DATABASE_DSN`. The suite includes a full `postgres.New` migration test in a unique isolated schema and verifies all 65 registered model tables.
 5. Conditional .NET 10 restore/build/test when a solution exists under `backend-dotnet/`.
 
-The earlier baseline Run `41006537076` passed the original audit, Go and Web checks. The full PostgreSQL and SQLite migration catalog tests are newly added; their first non-cancelled run is required before closing the database portion of G0.
+The PostgreSQL and SQLite migration catalog tests run only against ephemeral/temporary databases. Their current assertions verify all registered model tables and the SQLite vector virtual tables; a complete physical column/type/nullability/default/PK/FK/index catalog export and diff is still required before closing the database portion of G0.
 
 ## Remaining test work
 
