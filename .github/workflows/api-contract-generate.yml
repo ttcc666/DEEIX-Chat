@@ -41,6 +41,13 @@ jobs:
           cache-dependency-path: backend/go.sum
       - name: Install workspace dependencies
         run: pnpm install --frozen-lockfile
+      - name: Format touched Go source files
+        run: |
+          gofmt -w \
+            backend/internal/transport/http/server.go \
+            backend/internal/transport/http/billing/handler.go \
+            backend/internal/transport/http/billing/router.go \
+            backend/internal/transport/http/billing/payment.go
       - name: Generate Swagger and TypeScript contracts from Go annotations
         run: pnpm api:generate
       - name: Verify generated contract artifacts
@@ -51,6 +58,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          git add backend/internal/transport/http/server.go backend/internal/transport/http/billing/handler.go backend/internal/transport/http/billing/router.go backend/internal/transport/http/billing/payment.go
           git add backend/docs/docs.go backend/docs/swagger.json backend/docs/swagger.yaml packages/api-contract/src/types.generated.ts
           if git diff --cached --quiet; then
             echo "Generated API contract artifacts are already up to date."
