@@ -498,7 +498,6 @@ func readyzHandler(hc HealthChecker, shutdown *lifecycle.Shutdown) gin.HandlerFu
 	}
 }
 
-
 // GetVersion godoc
 // @Summary 获取 API 构建版本
 // @Description 返回当前服务版本、提交和构建信息
