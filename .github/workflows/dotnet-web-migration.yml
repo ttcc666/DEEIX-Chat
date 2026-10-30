@@ -36,12 +36,17 @@ jobs:
           python3 - <<'PY'
           import csv
           from pathlib import Path
+
           root = Path("docs/migration")
           required = [
               "00-SOURCE-BASELINE.md", "01-WEB-SCOPE-AND-EXCLUSIONS.md",
               "02-WEB-DEPENDENCY-MAP.md", "03-API-INVENTORY.csv",
-              "04-API-COMPATIBILITY-MATRIX.md", "05-DATABASE-SCHEMA-INVENTORY.md",
-              "06-DATABASE-TABLE-MAPPING.csv", "07-AUTH-CRYPTO-COMPATIBILITY.md",
+              "03A-WEB-API-CALLERS.csv", "03B-GO-ROUTE-HANDLERS.csv",
+              "03C-ROUTE-COVERAGE-REPORT.md", "04-API-COMPATIBILITY-MATRIX.md",
+              "05-DATABASE-SCHEMA-INVENTORY.md", "05B-DATABASE-INDEX-INVENTORY.md",
+              "06-DATABASE-TABLE-MAPPING.csv", "06B-DATABASE-FIELD-INVENTORY.csv",
+              "06C-DATABASE-GORM-INDEX-MEMBERS.csv", "06D-POSTGRES-CUSTOM-DDL.csv",
+              "06E-VECTOR-STORAGE-INVENTORY.csv", "07-AUTH-CRYPTO-COMPATIBILITY.md",
               "08-PROVIDER-COMPATIBILITY-MATRIX.md", "09-MCP-COMPATIBILITY.md",
               "10-FILES-RAG-MEMORY-MAPPING.md", "11-BILLING-PAYMENT-COMPATIBILITY.md",
               "12-WEB-DEPLOYMENT-ANALYSIS.md", "13-TEST-INVENTORY.md",
@@ -51,19 +56,48 @@ jobs:
           missing = [name for name in required if not (root / name).is_file()]
           if missing:
               raise SystemExit(f"Missing migration audit files: {missing}")
-          with (root / "03-API-INVENTORY.csv").open(newline="", encoding="utf-8") as f:
-              api_rows = list(csv.DictReader(f))
-          with (root / "06-DATABASE-TABLE-MAPPING.csv").open(newline="", encoding="utf-8") as f:
-              table_rows = list(csv.DictReader(f))
-          if len(api_rows) != 339:
-              raise SystemExit(f"Expected 339 Swagger operations, found {len(api_rows)}")
-          if len(table_rows) != 65:
-              raise SystemExit(f"Expected 65 GORM tables, found {len(table_rows)}")
+
+          def load(name):
+              with (root / name).open(newline="", encoding="utf-8") as f:
+                  return list(csv.DictReader(f))
+
+          api_rows = load("03-API-INVENTORY.csv")
+          web_rows = load("03A-WEB-API-CALLERS.csv")
+          go_rows = load("03B-GO-ROUTE-HANDLERS.csv")
+          table_rows = load("06-DATABASE-TABLE-MAPPING.csv")
+          field_rows = load("06B-DATABASE-FIELD-INVENTORY.csv")
+          index_rows = load("06C-DATABASE-GORM-INDEX-MEMBERS.csv")
+          ddl_rows = load("06D-POSTGRES-CUSTOM-DDL.csv")
+          vector_rows = load("06E-VECTOR-STORAGE-INVENTORY.csv")
+
+          expected = {
+              "Swagger operations": (len(api_rows), 339),
+              "Web caller rows": (len(web_rows), 327),
+              "Go route registrations": (len(go_rows), 344),
+              "GORM table mappings": (len(table_rows), 65),
+              "GORM field rows": (len(field_rows), 886),
+              "GORM index members": (len(index_rows), 430),
+              "PostgreSQL custom DDL": (len(ddl_rows), 87),
+              "SQLite vector tables": (len(vector_rows), 3),
+          }
+          for label, (actual, wanted) in expected.items():
+              if actual != wanted:
+                  raise SystemExit(f"{label}: expected {wanted}, found {actual}")
+
+          if any(not row["go_handler"] for row in api_rows):
+              raise SystemExit("Every Swagger operation must map to a Go handler")
+          if sum(row["web_caller_mapping"] == "PATH_MATCH_ONLY" for row in api_rows) != 321:
+              raise SystemExit("Expected 321 Web path matches; review API caller inventory")
+          if sum(row["web_caller_mapping"] == "NO_LITERAL_MATCH_REVIEW" for row in api_rows) != 18:
+              raise SystemExit("Expected 18 no-literal caller routes; review coverage report")
+          if any(row["migration_status"] != "EXPLICIT_TABLE_NAME_VERIFIED" for row in table_rows):
+              raise SystemExit("Every GORM table name must be explicitly source-verified")
           if any(row["compatibility_status"] != "NOT_MAPPED" for row in api_rows):
               raise SystemExit("Do not mark compatibility complete before implementation")
-          if any(not row["table_name"] for row in table_rows):
-              raise SystemExit("Empty database table name")
-          print(f"Validated {len(api_rows)} API operations and {len(table_rows)} GORM tables.")
+          if any(row["dotnet_implementation"] != "NOT_STARTED" for row in api_rows):
+              raise SystemExit("Do not mark .NET implementation started from an inventory-only commit")
+
+          print("Validated source inventory: 339 API operations, 344 Go routes, 321 Web path matches, 65 tables, 886 fields, 430 index members, 87 PostgreSQL DDL statements and 3 vector tables.")
           PY
 
   go-baseline:
@@ -88,6 +122,39 @@ jobs:
         run: go test ./...
       - name: Test Desktop sidecar tag set
         run: go test -tags "$SIDECAR_TAGS" ./internal/infra/observability/tracing/... ./internal/infra/openwebui/... ./internal/infra/persistence/...
+
+  postgres-integration:
+    name: PostgreSQL persistence integration (ephemeral pgvector)
+    runs-on: ubuntu-24.04
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_DB: deeix_test
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d deeix_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+    defaults:
+      run:
+        working-directory: backend
+    env:
+      DEEIX_TEST_DATABASE_DSN: postgres://postgres:postgres@localhost:5432/deeix_test?sslmode=disable
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: backend/go.mod
+          cache-dependency-path: backend/go.sum
+      - name: Enable pgvector extension
+        run: psql "$DEEIX_TEST_DATABASE_DSN" -v ON_ERROR_STOP=1 -c "CREATE EXTENSION IF NOT EXISTS vector"
+      - name: Run PostgreSQL persistence integration tests
+        run: go test -count=1 ./internal/infra/persistence/postgres/...
 
   web-baseline:
     name: Web baseline (checks, tests and static build)

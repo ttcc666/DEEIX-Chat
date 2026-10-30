@@ -2,8 +2,8 @@
 
 | Phase | Area | Status |
 |---|---|---|
-| 0 | Source/API/DB/Auth/Provider/MCP/Files/Billing/Web/CI audit | In progress — G0 BLOCKED |
-| 1 | .NET solution/config/logging/DB/cache/storage/OpenAPI/health | Not started; blocked by G0 |
+| 0 | Source/API/DB/Auth/Provider/MCP/Files/Billing/Web/CI audit | In progress — G0 BLOCKED; route and source schema inventories substantially mapped, physical catalog + DTO/auth review pending |
+| 1 | .NET solution/config/logging/DB/cache/storage/OpenAPI/health | Not started; gated by G0 |
 | 2 | Identity/sessions/MFA/OAuth/authorization | Not started |
 | 3 | Providers/models/routes/circuit breakers | Not started |
 | 4 | Conversations/context/NDJSON | Not started |
