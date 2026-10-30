@@ -13,7 +13,7 @@ import (
 func (m *Module) RegisterPublicRoutes(publicGroup *gin.RouterGroup, gate middleware.FeatureGate) {
 	gating := publicGroup.Group("", gate.Require("billingGating"))
 	gating.POST("/billing/payments/stripe/webhook", m.Handler.StripeWebhook)
-	gating.GET("/billing/payments/epay/notify", m.Handler.EPayNotify)
+	gating.GET("/billing/payments/epay/notify", m.Handler.EPayNotifyGET)
 	gating.POST("/billing/payments/epay/notify", m.Handler.EPayNotify)
 }
 

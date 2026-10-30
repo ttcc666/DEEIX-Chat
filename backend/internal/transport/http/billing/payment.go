@@ -235,7 +235,6 @@ func (h *Handler) StripeWebhook(c *gin.Context) {
 // @Tags billing
 // @Produce text/plain
 // @Success 200 {string} string "success"
-// @Router /billing/payments/epay/notify [get]
 // @Router /billing/payments/epay/notify [post]
 func (h *Handler) EPayNotify(c *gin.Context) {
 	settings, err := h.resolvePaymentSettings(c.Request.Context())
@@ -827,4 +826,14 @@ func sameOriginPublicURL(baseURL string, raw string) (string, error) {
 func isHTTPURL(value string) bool {
 	parsed, err := url.Parse(strings.TrimSpace(value))
 	return err == nil && (parsed.Scheme == "http" || parsed.Scheme == "https") && parsed.Host != ""
+}
+
+// EPayNotifyGET godoc
+// @Summary 易支付异步通知（GET）
+// @Tags billing
+// @Produce text/plain
+// @Success 200 {string} string "success"
+// @Router /billing/payments/epay/notify [get]
+func (h *Handler) EPayNotifyGET(c *gin.Context) {
+	h.EPayNotify(c)
 }
