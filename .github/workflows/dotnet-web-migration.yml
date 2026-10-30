@@ -194,7 +194,7 @@ jobs:
         working-directory: backend
     env:
       DEEIX_TEST_DATABASE_DSN: postgres://postgres:postgres@localhost:5432/deeix_test?sslmode=disable
-      DEEIX_TEST_CATALOG_DIR: ${{ runner.temp }}/deeix-migration-catalog
+      DEEIX_TEST_CATALOG_DIR: ${{ github.workspace }}/.migration-catalog
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-go@v6
@@ -216,7 +216,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: migration-database-catalog-${{ github.run_id }}
-          path: ${{ runner.temp }}/deeix-migration-catalog/
+          path: ${{ github.workspace }}/.migration-catalog/
           if-no-files-found: warn
 
   web-baseline:

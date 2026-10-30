@@ -12,6 +12,7 @@ on:
       - "backend/go.sum"
       - "packages/api-contract/scripts/**"
       - ".github/workflows/api-contract-generate.yml"
+      - ".github/workflows/dotnet-web-migration.yml"
   workflow_dispatch:
 
 permissions:
