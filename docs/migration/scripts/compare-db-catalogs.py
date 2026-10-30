@@ -294,6 +294,12 @@ def main() -> int:
     if len(custom_index_errors) > 30:
         errors.append(f"... {len(custom_index_errors) - 30} more custom-index mismatches")
 
+    legacy_index_key = ("chat_conversation_projects", "idx_chat_conversation_projects_public_id")
+    if legacy_index_key in pg_index_map:
+        errors.append("PostgreSQL legacy full unique index remains; expected active-row partial index")
+    if legacy_index_key in sqlite_index_map:
+        errors.append("SQLite legacy full unique index remains; expected active-row partial index")
+
     pg_pk_tables = {
         table_leaf(row["table_name"])
         for row in pg.get("constraints", [])
