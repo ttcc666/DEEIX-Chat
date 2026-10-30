@@ -1,0 +1,62 @@
+name: Generate API Contract Artifacts
+
+on:
+  push:
+    branches:
+      - "migration/dotnet-web-*"
+    paths:
+      - "backend/internal/transport/http/**"
+      - "backend/internal/shared/buildinfo/**"
+      - "backend/go.mod"
+      - "backend/go.sum"
+      - "packages/api-contract/scripts/**"
+      - ".github/workflows/api-contract-generate.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: api-contract-generate-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  generate:
+    name: Generate and commit canonical API artifacts
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.ref_name }}
+      - uses: pnpm/action-setup@v5
+        with:
+          version: 10.17.0
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: backend/go.mod
+          cache-dependency-path: backend/go.sum
+      - name: Install workspace dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Generate Swagger and TypeScript contracts from Go annotations
+        run: pnpm api:generate
+      - name: Verify generated contract artifacts
+        run: pnpm api:check
+      - name: Check generated diff
+        run: git diff --check
+      - name: Commit generated artifacts
+        shell: bash
+        run: |
+          set -euo pipefail
+          git add backend/docs/docs.go backend/docs/swagger.json backend/docs/swagger.yaml packages/api-contract/src/types.generated.ts
+          if git diff --cached --quiet; then
+            echo "Generated API contract artifacts are already up to date."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "chore: regenerate API contract artifacts"
+          git push origin "HEAD:${GITHUB_REF_NAME}"

@@ -174,11 +174,7 @@ func NewEngine(cfg *config.Runtime, log *zap.Logger, modules Modules, hc HealthC
 	api := engine.Group("/api/v1")
 	// 能力位关闭的功能整组返回 404 feature.disabled；见 docs/ARCHITECTURE.md §4。
 	gate := middleware.NewFeatureGate(cfg)
-	api.GET("/version", func(c *gin.Context) {
-		c.Header("Cache-Control", "no-store, no-cache, must-revalidate")
-		c.Header("Pragma", "no-cache")
-		c.JSON(http.StatusOK, buildinfo.Snapshot())
-	})
+	api.GET("/version", GetVersion)
 	{
 		publicAuth := api.Group("")
 		publicAuth.Use(middleware.PublicAuthRateLimit(limiter, cfg))
@@ -500,4 +496,18 @@ func readyzHandler(hc HealthChecker, shutdown *lifecycle.Shutdown) gin.HandlerFu
 			"checks": checksMap,
 		})
 	}
+}
+
+
+// GetVersion godoc
+// @Summary 获取 API 构建版本
+// @Description 返回当前服务版本、提交和构建信息
+// @Tags system
+// @Produce json
+// @Success 200 {object} buildinfo.Info
+// @Router /version [get]
+func GetVersion(c *gin.Context) {
+	c.Header("Cache-Control", "no-store, no-cache, must-revalidate")
+	c.Header("Pragma", "no-cache")
+	c.JSON(http.StatusOK, buildinfo.Snapshot())
 }

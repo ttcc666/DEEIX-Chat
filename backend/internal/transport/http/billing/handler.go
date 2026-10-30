@@ -81,6 +81,24 @@ func (h *Handler) recordAudit(c *gin.Context, userID uint, action string, resour
 // @Failure 500 {object} ErrorDoc
 // @Router /admin/billing/config [get]
 func (h *Handler) GetBillingConfig(c *gin.Context) {
+	h.getBillingConfig(c)
+}
+
+// GetUserBillingConfig godoc
+// @Summary 查询当前用户可见的计费配置
+// @Description 查询当前全局计费模式与展示配置
+// @Tags billing
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Success 200 {object} BillingConfigResponseDoc
+// @Failure 500 {object} ErrorDoc
+// @Router /billing/config [get]
+func (h *Handler) GetUserBillingConfig(c *gin.Context) {
+	h.getBillingConfig(c)
+}
+
+func (h *Handler) getBillingConfig(c *gin.Context) {
 	config, err := h.loadBillingConfig(c.Request.Context())
 	if err != nil {
 		response.InternalError(c, err)
@@ -292,6 +310,24 @@ type settingValidationDetailsResponse struct {
 // @Failure 500 {object} ErrorDoc
 // @Router /billing/plans [get]
 func (h *Handler) ListPlans(c *gin.Context) {
+	h.listPlans(c)
+}
+
+// ListAdminPlans godoc
+// @Summary 管理员查询计费套餐
+// @Description 查询管理员可配置的订阅套餐及价格
+// @Tags admin-billing
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Success 200 {object} PlanListResponseDoc
+// @Failure 500 {object} ErrorDoc
+// @Router /admin/billing/plans [get]
+func (h *Handler) ListAdminPlans(c *gin.Context) {
+	h.listPlans(c)
+}
+
+func (h *Handler) listPlans(c *gin.Context) {
 	items, err := h.service.ListPlans(c.Request.Context())
 	if err != nil {
 		response.InternalError(c, err)

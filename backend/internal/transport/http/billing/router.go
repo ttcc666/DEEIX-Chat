@@ -19,7 +19,7 @@ func (m *Module) RegisterPublicRoutes(publicGroup *gin.RouterGroup, gate middlew
 
 // RegisterRoutes 注册计费域路由。
 func (m *Module) RegisterRoutes(authRequired *gin.RouterGroup, gate middleware.FeatureGate) {
-	authRequired.GET("/billing/config", m.Handler.GetBillingConfig)
+	authRequired.GET("/billing/config", m.Handler.GetUserBillingConfig)
 	authRequired.GET("/billing/account", m.Handler.GetBillingAccount)
 	authRequired.GET("/billing/overview", m.Handler.GetBillingOverview)
 	authRequired.GET("/billing/usage", m.Handler.ListUsage)
@@ -43,7 +43,7 @@ func (m *Module) RegisterAdminRoutes(adminGroup *gin.RouterGroup, gate middlewar
 	adminGroup.GET("/billing/official-pricing/openrouter", m.Handler.GetOpenRouterOfficialPricing)
 
 	gating := adminGroup.Group("", gate.Require("billingGating"))
-	gating.GET("/billing/plans", m.Handler.ListPlans)
+	gating.GET("/billing/plans", m.Handler.ListAdminPlans)
 	gating.PATCH("/billing/plans/:id", m.Handler.UpdatePlan)
 	gating.PATCH("/billing/accounts/:user_id/balance", m.Handler.UpdateBillingAccountBalance)
 	gating.GET("/billing/redemption-codes", m.Handler.ListRedemptionCodes)
