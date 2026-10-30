@@ -339,3 +339,7 @@
 "POST","/api/v1/admin/ui-components","CreateAdmin","backend/internal/transport/http/uicomponent/router.go","RegisterAdminRoutes","adminGroup"
 "PATCH","/api/v1/admin/ui-components/{id}","PatchAdmin","backend/internal/transport/http/uicomponent/router.go","RegisterAdminRoutes","adminGroup"
 "DELETE","/api/v1/admin/ui-components/{id}","DeleteAdmin","backend/internal/transport/http/uicomponent/router.go","RegisterAdminRoutes","adminGroup"
+"GET","/api/v1/users/{public_id}/avatar","GetAvatar","backend/internal/transport/http/user/router.go","RegisterPublicRoutes","public"
+"GET","/api/v1/user/stats/activity","GetDailyActivity","backend/internal/transport/http/user/router.go","RegisterRoutes","authRequired"
+"GET","/api/v1/user/settings","GetSettings","backend/internal/transport/http/usersettings/router.go","RegisterRoutes","g"
+"PATCH","/api/v1/user/settings","PatchSettings","backend/internal/transport/http/usersettings/router.go","RegisterRoutes","g"
