@@ -46,7 +46,7 @@ jobs:
               "04-API-COMPATIBILITY-MATRIX.md", "05-DATABASE-SCHEMA-INVENTORY.md",
               "05B-DATABASE-INDEX-INVENTORY.md", "06-DATABASE-TABLE-MAPPING.csv",
               "06B-DATABASE-FIELD-INVENTORY.csv", "06C-DATABASE-GORM-INDEX-MEMBERS.csv",
-              "06D-POSTGRES-CUSTOM-DDL.csv", "06E-VECTOR-STORAGE-INVENTORY.csv",
+              "06D-POSTGRES-CUSTOM-DDL.csv", "06E-VECTOR-STORAGE-INVENTORY.csv", "scripts/compare-db-catalogs.py",
               "07-AUTH-CRYPTO-COMPATIBILITY.md", "08-PROVIDER-COMPATIBILITY-MATRIX.md",
               "09-MCP-COMPATIBILITY.md", "10-FILES-RAG-MEMORY-MAPPING.md",
               "11-BILLING-PAYMENT-COMPATIBILITY.md", "12-WEB-DEPLOYMENT-ANALYSIS.md",
@@ -194,16 +194,30 @@ jobs:
         working-directory: backend
     env:
       DEEIX_TEST_DATABASE_DSN: postgres://postgres:postgres@localhost:5432/deeix_test?sslmode=disable
+      DEEIX_TEST_CATALOG_DIR: ${{ runner.temp }}/deeix-migration-catalog
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-go@v6
         with:
           go-version-file: backend/go.mod
           cache-dependency-path: backend/go.sum
+      - name: Prepare catalog output directory
+        run: mkdir -p "$DEEIX_TEST_CATALOG_DIR"
       - name: Enable pgvector extension
         run: psql "$DEEIX_TEST_DATABASE_DSN" -v ON_ERROR_STOP=1 -c "CREATE EXTENSION IF NOT EXISTS vector"
-      - name: Run PostgreSQL persistence integration tests
-        run: go test -count=1 ./internal/infra/persistence/postgres/...
+      - name: Run PostgreSQL persistence integration tests and export catalog
+        run: go test -count=1 -v ./internal/infra/persistence/postgres/...
+      - name: Export SQLite migration catalog
+        run: go test -count=1 -v ./internal/infra/persistence/sqlite/...
+      - name: Compare physical catalogs with source inventories
+        run: python3 ../docs/migration/scripts/compare-db-catalogs.py --catalog-dir "$DEEIX_TEST_CATALOG_DIR"
+      - name: Upload isolated migration catalog snapshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: migration-database-catalog-${{ github.run_id }}
+          path: ${{ runner.temp }}/deeix-migration-catalog/
+          if-no-files-found: warn
 
   web-baseline:
     name: Web baseline (checks, tests and static build)
