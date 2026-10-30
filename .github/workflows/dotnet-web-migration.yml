@@ -1,0 +1,144 @@
+name: .NET Web Migration Checks
+
+on:
+  push:
+    branches:
+      - "migration/dotnet-web-*"
+  pull_request:
+    branches: [dev]
+    paths:
+      - "docs/migration/**"
+      - "backend-dotnet/**"
+      - ".github/workflows/dotnet-web-migration.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: dotnet-web-migration-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PNPM_VERSION: 10.17.0
+  SIDECAR_TAGS: nopostgres,noredis,nos3,noswagger,nomsgpack,nootlp
+
+jobs:
+  audit:
+    name: Migration audit artifacts
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+      - name: Validate migration inventories
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import csv
+          from pathlib import Path
+          root = Path("docs/migration")
+          required = [
+              "00-SOURCE-BASELINE.md", "01-WEB-SCOPE-AND-EXCLUSIONS.md",
+              "02-WEB-DEPENDENCY-MAP.md", "03-API-INVENTORY.csv",
+              "04-API-COMPATIBILITY-MATRIX.md", "05-DATABASE-SCHEMA-INVENTORY.md",
+              "06-DATABASE-TABLE-MAPPING.csv", "07-AUTH-CRYPTO-COMPATIBILITY.md",
+              "08-PROVIDER-COMPATIBILITY-MATRIX.md", "09-MCP-COMPATIBILITY.md",
+              "10-FILES-RAG-MEMORY-MAPPING.md", "11-BILLING-PAYMENT-COMPATIBILITY.md",
+              "12-WEB-DEPLOYMENT-ANALYSIS.md", "13-TEST-INVENTORY.md",
+              "14-RISK-REGISTER.md", "15-FEATURE-MIGRATION-MATRIX.md",
+              "PHASE-0-GATE-REPORT.md"
+          ]
+          missing = [name for name in required if not (root / name).is_file()]
+          if missing:
+              raise SystemExit(f"Missing migration audit files: {missing}")
+          with (root / "03-API-INVENTORY.csv").open(newline="", encoding="utf-8") as f:
+              api_rows = list(csv.DictReader(f))
+          with (root / "06-DATABASE-TABLE-MAPPING.csv").open(newline="", encoding="utf-8") as f:
+              table_rows = list(csv.DictReader(f))
+          if len(api_rows) != 339:
+              raise SystemExit(f"Expected 339 Swagger operations, found {len(api_rows)}")
+          if len(table_rows) != 65:
+              raise SystemExit(f"Expected 65 GORM tables, found {len(table_rows)}")
+          if any(row["compatibility_status"] != "NOT_MAPPED" for row in api_rows):
+              raise SystemExit("Do not mark compatibility complete before implementation")
+          if any(not row["table_name"] for row in table_rows):
+              raise SystemExit("Empty database table name")
+          print(f"Validated {len(api_rows)} API operations and {len(table_rows)} GORM tables.")
+          PY
+
+  go-baseline:
+    name: Go baseline (including Desktop sidecar tags)
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: backend/go.mod
+          cache-dependency-path: backend/go.sum
+      - name: Lint
+        run: make lint
+      - name: Build default
+        run: go build ./...
+      - name: Build Desktop sidecar tag set
+        run: go build -tags "$SIDECAR_TAGS" ./...
+      - name: Test default
+        run: go test ./...
+      - name: Test Desktop sidecar tag set
+        run: go test -tags "$SIDECAR_TAGS" ./internal/infra/observability/tracing/... ./internal/infra/openwebui/... ./internal/infra/persistence/...
+
+  web-baseline:
+    name: Web baseline (checks, tests and static build)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v5
+        with:
+          version: ${{ env.PNPM_VERSION }}
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: backend/go.mod
+          cache-dependency-path: backend/go.sum
+      - name: Install
+        run: pnpm install --frozen-lockfile
+      - name: Check (lint, types, architecture, API contract)
+        run: pnpm turbo run check --filter=@deeix/web --filter=./packages/*
+      - name: Test
+        run: pnpm turbo run test --filter=./packages/*
+      - name: Build static Web
+        run: pnpm turbo run build --filter=@deeix/web
+
+  dotnet:
+    name: .NET 10 build and tests (when solution exists)
+    if: ${{ hashFiles('backend-dotnet/**/*.sln') != '' || hashFiles('backend-dotnet/**/*.slnx') != '' }}
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: 10.0.x
+      - name: Restore
+        shell: bash
+        run: |
+          set -euo pipefail
+          solution="$(find backend-dotnet -type f \( -name '*.sln' -o -name '*.slnx' \) -print -quit)"
+          test -n "$solution"
+          dotnet restore "$solution"
+      - name: Build
+        shell: bash
+        run: |
+          set -euo pipefail
+          solution="$(find backend-dotnet -type f \( -name '*.sln' -o -name '*.slnx' \) -print -quit)"
+          dotnet build "$solution" --configuration Release --no-restore
+      - name: Test
+        shell: bash
+        run: |
+          set -euo pipefail
+          solution="$(find backend-dotnet -type f \( -name '*.sln' -o -name '*.slnx' \) -print -quit)"
+          dotnet test "$solution" --configuration Release --no-build --logger "trx;LogFileName=dotnet-tests.trx"
